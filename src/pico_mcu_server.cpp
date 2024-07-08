@@ -98,7 +98,7 @@ int main(void) {
         JsonDataSerializer()
     );
 
-    
+
 
     return 0;
 }
