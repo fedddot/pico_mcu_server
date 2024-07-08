@@ -1,7 +1,10 @@
+#include <exception>
+#include <stdexcept>
+#include <string>
+
 #include "custom_creator.hpp"
 #include "custom_receiver.hpp"
 #include "custom_retriever.hpp"
-#include "custom_sender.hpp"
 #include "data.hpp"
 #include "gpio.hpp"
 #include "integer.hpp"
@@ -11,11 +14,9 @@
 #include "mcu_task_engine.hpp"
 #include "mcu_task_type.hpp"
 #include "object.hpp"
+#include "pico_data_sender.hpp"
 #include "pico_mcu_server_types.hpp"
 #include "string.hpp"
-#include <exception>
-#include <stdexcept>
-#include <string>
 
 using namespace mcu_server_utl;
 using namespace pico_mcu_server;
@@ -85,11 +86,7 @@ int main(void) {
         )
     );
 
-    CustomSender<RawData> sender(
-        [](const RawData& raw_data) {
-            throw std::runtime_error("NOT_IMPLEMENTED");
-        }
-    );
+    PicoDataSender sender;
 
     CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
 
@@ -100,6 +97,8 @@ int main(void) {
         JsonDataParser(),
         JsonDataSerializer()
     );
+
+    
 
     return 0;
 }

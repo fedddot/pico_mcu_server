@@ -26,4 +26,10 @@ target_link_libraries(
     custom_retriever
     data_lib
 )
+target_compile_definitions(
+    pico_mcu_server
+    PRIVATE
+    -DMSG_HEADER="MSG_HEADER"
+    -DMSG_TAIL="MSG_TAIL"
+)
 add_subdirectory(external)
