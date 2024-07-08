@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(PICO_SDK_FETCH_FROM_GIT ON)
-include(pico_sdk_import.cmake)
+include(external/pico_sdk_import.cmake)
 
 project(pico_mcu_server C CXX ASM)
 
