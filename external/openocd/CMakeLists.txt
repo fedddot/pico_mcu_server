@@ -1,10 +1,9 @@
-set(OPENOCD_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/code)
-
-set(OPENOCD_SRC_URL "https://git.code.sf.net/p/openocd/code")
+set(OPENOCD_SRC_URL https://github.com/openocd-org/openocd.git)
+set(OPENOCD_SRC_DIR ${CMAKE_CURRENT_BINARY_DIR}/openocd)
 add_custom_command(
     OUTPUT ${OPENOCD_SRC_DIR} ${OPENOCD_SRC_DIR}/bootstrap
-    COMMENT "Fetching OpenOCD sources from ${OPENOCD_SRC_URL} into ${OPENOCD_SRC_DIR}"
-    COMMAND git clone ${OPENOCD_SRC_URL}
+    COMMENT "Cloning OpenOCD sources from ${OPENOCD_SRC_URL} into ${OPENOCD_SRC_DIR}"
+    COMMAND git clone ${OPENOCD_SRC_URL} openocd
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
 
@@ -23,37 +22,37 @@ add_custom_command(
     COMMAND mkdir -p ${OPENOCD_BIN_DIR}
 )
 
+add_custom_target(
+    install_hidapi
+    COMMENT "Installing libhidapi-dev"
+    COMMAND sudo apt-get update && sudo apt-get install -y libhidapi-dev
+)
+
 add_custom_command(
     OUTPUT ${OPENOCD_BIN_DIR}/Makefile
     COMMENT "Config OpenOCD build"
-    COMMAND ${OPENOCD_SRC_DIR}/configure --enable-ftdi --enable-sysfsgpio --enable-bcm2835gpio
+    COMMAND ${OPENOCD_SRC_DIR}/configure --enable-cmsis-dap-v2 --enable-cmsis-dap
     WORKING_DIRECTORY ${OPENOCD_BIN_DIR}
-    DEPENDS ${OPENOCD_BIN_DIR} ${OPENOCD_SRC_DIR}/configure
+    DEPENDS ${OPENOCD_BIN_DIR} ${OPENOCD_SRC_DIR}/configure install_hidapi
 )
 
-add_custom_target(config_openocd_build DEPENDS ${OPENOCD_BIN_DIR}/Makefile)
-
+# lines 67-68
+set(CMSIS_DAP_DST_PATH ${OPENOCD_SRC_DIR}/src/jtag/drivers/cmsis_dap.c)
+set(CMSIS_DAP_SRC_PATH ${CMAKE_CURRENT_LIST_DIR}/src/cmsis_dap.c)
 add_custom_command(
     OUTPUT ${OPENOCD_BIN_DIR}/src/openocd
     COMMENT "building OpenOCD under ${OPENOCD_BIN_DIR}"
+    COMMAND cp -f ${CMSIS_DAP_SRC_PATH} ${CMSIS_DAP_DST_PATH}
     COMMAND make -j4
     WORKING_DIRECTORY ${OPENOCD_BIN_DIR}
     DEPENDS ${OPENOCD_BIN_DIR}/Makefile
 )
 
-# add_custom_command(
-#     OUTPUT ${OPENOCD_BIN_DIR}/install/openocd
-#     COMMENT "installing OpenOCD"
-#     COMMAND sudo make install 
-#     WORKING_DIRECTORY ${OPENOCD_BIN_DIR}
-#     DEPENDS ${OPENOCD_BIN_DIR}/src/openocd
-# )
-
-add_custom_target(build_openocd DEPENDS ${OPENOCD_BIN_DIR}/src/openocd)
-
+set(TARGET_PATH ${CMAKE_BINARY_DIR}/bin/pico_mcu_server.elf)
 add_custom_target(
     run_openocd
     COMMENT "Running openocd"
-    COMMAND ${OPENOCD_BIN_DIR}/src/openocd -f ${OPENOCD_SRC_DIR}/tcl/target/rp2040.cfg -s ${OPENOCD_SRC_DIR} -c "transport select hla_swd"
-    DEPENDS build_openocd
+    COMMAND sudo ${OPENOCD_BIN_DIR}/src/openocd -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000" -c "program ${TARGET_PATH} verify reset exit"
+    DEPENDS ${OPENOCD_BIN_DIR}/src/openocd pico_mcu_server
+    WORKING_DIRECTORY ${OPENOCD_SRC_DIR}/tcl
 )

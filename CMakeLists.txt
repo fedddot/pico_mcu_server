@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 3.12)
 
 set(PICO_SDK_FETCH_FROM_GIT ON)
+set(PICO_CXX_ENABLE_EXCEPTIONS 1)
+set(PICO_CXX_ENABLE_RTTI 1)
 include(external/pico_sdk_import.cmake)
 
 project(pico_mcu_server C CXX ASM)
+
+pico_sdk_init()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,6 +25,7 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
+    pico_stdlib
     mcu_server
     mcu_task_engine
     pico_mcu_server_types
