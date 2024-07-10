@@ -95,7 +95,8 @@ int main(void) {
     );
 
     while (true) {
-        ;
+        RawData data(std::string(MSG_HEADER) + "{\"ctor_id\": 0, \"gpio_id\": 0, \"gpio_dir\": 1}" + std::string(MSG_TAIL));
+        server.feed(data);
     }
 
 

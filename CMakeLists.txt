@@ -49,7 +49,7 @@ target_compile_options(
 
 add_subdirectory(external)
 
-get_property(TARGET_DIR TARGET pico_mcu_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
+set(TARGET_DIR ${CMAKE_BINARY_DIR}/bin)
 get_property(OPENOCD_WORKDIR TARGET build_openocd PROPERTY OPENOCD_RUN_PATH)
 get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
 
