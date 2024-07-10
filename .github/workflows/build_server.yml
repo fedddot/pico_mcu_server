@@ -17,4 +17,4 @@ jobs:
     - uses: actions/checkout@v3
     - name: Build pico server
       working-directory: ${{github.workspace}}
-      run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi && mkdir -p build && cd build && cmake .. && make pico_mcu_server && make build_openocd
+      run: sudo apt-get update && sudo apt-get install -y gcc-arm-none-eabi libusb-1.0-0-dev && mkdir -p build && cd build && cmake .. && make pico_mcu_server && make build_openocd
