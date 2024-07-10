@@ -40,4 +40,20 @@ target_compile_definitions(
     -DMSG_HEADER="MSG_HEADER"
     -DMSG_TAIL="MSG_TAIL"
 )
+
 add_subdirectory(external)
+
+get_property(TARGET_DIR TARGET pico_mcu_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
+get_property(OPENOCD_WORKDIR TARGET build_openocd PROPERTY OPENOCD_RUN_PATH)
+get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
+
+add_custom_target(
+    run_openocd
+    COMMENT "Running openocd"
+    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000" -c "program ${TARGET_DIR}/pico_mcu_server.elf verify reset exit"
+    DEPENDS build_openocd pico_mcu_server
+    WORKING_DIRECTORY ${OPENOCD_WORKDIR}
+)
+
+
+
