@@ -1,12 +1,8 @@
 #include <exception>
-#include <stdexcept>
-#include <string>
 
-#include "custom_creator.hpp"
 #include "custom_receiver.hpp"
 #include "custom_retriever.hpp"
 #include "data.hpp"
-#include "gpio.hpp"
 #include "integer.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
@@ -86,7 +82,7 @@ int main(void) {
         )
     );
 
-    PicoDataSender sender;
+    PicoDataSender sender(PicoDataSender::UartId::UART0);
 
     CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
 
