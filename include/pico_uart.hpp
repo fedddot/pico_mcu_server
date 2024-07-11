@@ -11,9 +11,6 @@
 #include "listener.hpp"
 #include "pico_mcu_server_types.hpp"
 
-#define BAUD_RATE 115200
-#define UART_INSTANCE uart0
-
 namespace pico_mcu_server {
 
 	class PicoUart {
@@ -28,30 +25,33 @@ namespace pico_mcu_server {
 	private:
 		enum : uint {
 			UART0_TX_PIN = 0,
-			UART0_RX_PIN = 1
+			UART0_RX_PIN = 1,
+			BAUD_RATE = 115200
 		};
+		static uart_inst_t * const m_uart;
 		static std::unique_ptr<mcu_server::Listener<RawData>> s_listener;
 		static void register_listener(const mcu_server::Listener<RawData>& char_listener);
 		static void on_received_cb();
 	};
 
 	std::unique_ptr<mcu_server::Listener<RawData>> PicoUart::s_listener(nullptr);
+	uart_inst_t * const PicoUart::m_uart(uart0);
 
 	inline PicoUart::PicoUart() {
-		uart_init(UART_INSTANCE, BAUD_RATE);
+		uart_init(m_uart, BAUD_RATE);
 		gpio_set_function(UART0_TX_PIN, GPIO_FUNC_UART);
     	gpio_set_function(UART0_RX_PIN, GPIO_FUNC_UART);
 	}
 
 	inline PicoUart::~PicoUart() noexcept {
-    	uart_deinit(UART_INSTANCE);
+    	uart_deinit(m_uart);
 		gpio_set_function(UART0_TX_PIN, GPIO_FUNC_NULL);
     	gpio_set_function(UART0_RX_PIN, GPIO_FUNC_NULL);
 	}
 
 	inline void PicoUart::send(const RawData& data) const {
 		for (auto ch: data) {
-			uart_putc(UART_INSTANCE, ch);
+			uart_putc(m_uart, ch);
 		}
 	}
 
@@ -67,8 +67,8 @@ namespace pico_mcu_server {
 			return;
 		}
 		RawData data("");
-		while (uart_is_readable(UART_INSTANCE)) {
-			data.push_back(uart_getc(UART_INSTANCE));
+		while (uart_is_readable(m_uart)) {
+			data.push_back(uart_getc(m_uart));
 		}
 		s_listener->on_event(data);
 	}
