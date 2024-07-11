@@ -1,12 +1,11 @@
 #include <exception>
-#include <stdexcept>
-#include <string>
+#include <vector>
 
-#include "custom_creator.hpp"
+#include "boards/pico.h"
+#include "custom_listener.hpp"
 #include "custom_receiver.hpp"
 #include "custom_retriever.hpp"
 #include "data.hpp"
-#include "gpio.hpp"
 #include "integer.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
@@ -14,8 +13,12 @@
 #include "mcu_task_engine.hpp"
 #include "mcu_task_type.hpp"
 #include "object.hpp"
+#include "pico/stdio.h"
 #include "pico_data_sender.hpp"
+#include "pico_gpi.hpp"
+#include "pico_gpo.hpp"
 #include "pico_mcu_server_types.hpp"
+#include "pico_uart.hpp"
 #include "string.hpp"
 
 using namespace mcu_server_utl;
@@ -35,6 +38,7 @@ using namespace mcu_server;
 #endif
 
 int main(void) {
+    stdio_init_all();
     McuTaskEngine<GpioId> task_engine(
         CustomRetriever<McuTaskType(const Data&)>(
             [](const Data& data) {
@@ -65,8 +69,15 @@ int main(void) {
             }
         ),
         CustomCreator<Gpio *(const GpioId&, const Gpio::Direction&)>(
-            [](const GpioId&, const Gpio::Direction&)-> Gpio * {
-                throw std::runtime_error("NOT_IMPLEMENTED");
+            [](const GpioId& id, const Gpio::Direction& dir)-> Gpio * {
+                switch (dir) {
+                case Gpio::Direction::IN:
+                    return new PicoGpi(id);
+                case Gpio::Direction::OUT:
+                    return new PicoGpo(id);
+                default:
+                    throw std::invalid_argument("unsupported GPIO direction");
+                }
             }
         ),
         CustomCreator<Data *(int)>(
@@ -86,8 +97,8 @@ int main(void) {
         )
     );
 
-    PicoDataSender sender;
-
+    PicoUart uart;
+    PicoDataSender sender(&uart, MSG_HEADER, MSG_TAIL);
     CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
 
     McuServer<GpioId, RawData, FoodData> server(
@@ -97,8 +108,33 @@ int main(void) {
         JsonDataParser(),
         JsonDataSerializer()
     );
+    uart.set_listener(
+        CustomListener<RawData>(
+            [&server](const RawData& data)-> void {
+                server.feed(data);
+            }
+        )
+    );
 
+    GpioId gpio_id(PICO_DEFAULT_LED_PIN);
+    Object create_task_data;
+    create_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::CREATE_GPIO)));
+    create_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
+    create_task_data.add("gpio_dir", Integer(static_cast<int>(Gpio::Direction::OUT)));
 
+    Object set_task_data;
+    set_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::SET_GPIO)));
+    set_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
+    set_task_data.add("gpio_state", Integer(static_cast<int>(Gpio::State::HIGH)));
+
+    const std::vector<std::string> sequence {
+        std::string(MSG_HEADER) + JsonDataSerializer().serialize(create_task_data) + std::string(MSG_TAIL),
+        std::string(MSG_HEADER) + JsonDataSerializer().serialize(set_task_data) + std::string(MSG_TAIL)
+    };
+
+    for (auto task_data: sequence) {
+        server.feed(task_data);
+    }
 
     return 0;
 }
