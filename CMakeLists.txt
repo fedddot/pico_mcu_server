@@ -64,8 +64,8 @@ get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
 
 add_custom_target(
     upload_to_mcu
-    COMMENT "Running openocd"
-    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000" -c "program ${TARGET_DIR}/pico_mcu_server.elf verify reset exit"
+    COMMENT "Uploading ${OPENOCD_EXEC_PATH} to pico board"
+    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000" -c "program ${TARGET_DIR}/pico_mcu_server.elf verify reset exit"
     DEPENDS build_openocd pico_mcu_server
     WORKING_DIRECTORY ${OPENOCD_WORKDIR}
 )
@@ -73,7 +73,7 @@ add_custom_target(
 add_custom_target(
     run_gdb_server
     COMMENT "Running openocd gdb server"
-    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 5000"
+    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000"
     DEPENDS build_openocd
     WORKING_DIRECTORY ${OPENOCD_WORKDIR}
 )

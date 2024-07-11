@@ -12,6 +12,7 @@
 #include "mcu_task_engine.hpp"
 #include "mcu_task_type.hpp"
 #include "object.hpp"
+#include "pico/stdio.h"
 #include "pico_data_sender.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
@@ -35,6 +36,7 @@ using namespace mcu_server;
 #endif
 
 int main(void) {
+    stdio_init_all();
     McuTaskEngine<GpioId> task_engine(
         CustomRetriever<McuTaskType(const Data&)>(
             [](const Data& data) {
@@ -112,9 +114,9 @@ int main(void) {
     create_task_data.add("gpio_dir", Integer(static_cast<int>(Gpio::Direction::OUT)));
 
     Object set_task_data;
-    create_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::SET_GPIO)));
-    create_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
-    create_task_data.add("gpio_state", Integer(static_cast<int>(Gpio::State::HIGH)));
+    set_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::SET_GPIO)));
+    set_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
+    set_task_data.add("gpio_state", Integer(static_cast<int>(Gpio::State::HIGH)));
 
     const std::vector<std::string> sequence {
         std::string(MSG_HEADER) + JsonDataSerializer().serialize(create_task_data) + std::string(MSG_TAIL),
