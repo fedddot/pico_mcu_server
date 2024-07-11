@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "boards/pico.h"
+#include "custom_listener.hpp"
 #include "custom_receiver.hpp"
 #include "custom_retriever.hpp"
 #include "data.hpp"
@@ -17,6 +18,7 @@
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
 #include "pico_mcu_server_types.hpp"
+#include "pico_uart.hpp"
 #include "string.hpp"
 
 using namespace mcu_server_utl;
@@ -95,8 +97,8 @@ int main(void) {
         )
     );
 
-    PicoDataSender sender(PicoDataSender::UartId::UART0);
-
+    PicoUart uart;
+    PicoDataSender sender(&uart, MSG_HEADER, MSG_TAIL);
     CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
 
     McuServer<GpioId, RawData, FoodData> server(
@@ -105,6 +107,13 @@ int main(void) {
         &receiver,
         JsonDataParser(),
         JsonDataSerializer()
+    );
+    uart.set_listener(
+        CustomListener<RawData>(
+            [&server](const RawData& data)-> void {
+                server.feed(data);
+            }
+        )
     );
 
     GpioId gpio_id(PICO_DEFAULT_LED_PIN);
