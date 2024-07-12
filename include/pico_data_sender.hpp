@@ -29,7 +29,7 @@ namespace pico_mcu_server {
 	}
 
 	inline void PicoDataSender::send(const RawData& data) const {
-		m_uart->send(m_head + data + m_tail);
+		m_uart->send(m_head + data + m_tail + "\n\r");
 	}
 }
 

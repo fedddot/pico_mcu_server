@@ -115,26 +115,10 @@ int main(void) {
             }
         )
     );
+    uart.send("MCU SERVER STARTED\n\r");
 
-    GpioId gpio_id(PICO_DEFAULT_LED_PIN);
-    Object create_task_data;
-    create_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::CREATE_GPIO)));
-    create_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
-    create_task_data.add("gpio_dir", Integer(static_cast<int>(Gpio::Direction::OUT)));
-
-    Object set_task_data;
-    set_task_data.add("ctor_id", Integer(static_cast<int>(McuTaskType::SET_GPIO)));
-    set_task_data.add("gpio_id", Integer(static_cast<int>(gpio_id)));
-    set_task_data.add("gpio_state", Integer(static_cast<int>(Gpio::State::HIGH)));
-
-    const std::vector<std::string> sequence {
-        std::string(MSG_HEADER) + JsonDataSerializer().serialize(create_task_data) + std::string(MSG_TAIL),
-        std::string(MSG_HEADER) + JsonDataSerializer().serialize(set_task_data) + std::string(MSG_TAIL)
-    };
-
-    for (auto task_data: sequence) {
-        server.feed(task_data);
+    while (true) {
+        ;
     }
-
     return 0;
 }
