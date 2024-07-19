@@ -17,6 +17,7 @@
 #include "pico_data_sender.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
+#include "pico_delay.hpp"
 #include "pico_mcu_server_types.hpp"
 #include "pico_uart.hpp"
 #include "string.hpp"
@@ -68,6 +69,16 @@ int main(void) {
                 return static_cast<Gpio::State>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_state")).get());
             }
         ),
+        CustomRetriever<Data *(const Data&)>(
+            [](const Data& data) {
+                return Data::cast<Object>(data).access("tasks").clone();
+            }
+        ),
+        CustomRetriever<int(const Data&)>(
+            [](const Data& data) {
+                return Data::cast<Integer>(Data::cast<Object>(data).access("delay_ms")).get();
+            }
+        ),
         CustomCreator<Gpio *(const GpioId&, const Gpio::Direction&)>(
             [](const GpioId& id, const Gpio::Direction& dir)-> Gpio * {
                 switch (dir) {
@@ -93,6 +104,11 @@ int main(void) {
                 report.add("result", Integer(result));
                 report.add("gpio_state", Integer(static_cast<int>(state)));
                 return report.clone();
+            }
+        ),
+        CustomCreator<Delay *(int)>(
+            [](int delay_ms) {
+                return new PicoDelay(delay_ms);
             }
         )
     );
