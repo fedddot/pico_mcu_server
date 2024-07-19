@@ -68,6 +68,11 @@ int main(void) {
                 return static_cast<Gpio::State>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_state")).get());
             }
         ),
+        CustomRetriever<Data *(const Data&)>(
+            [](const Data& data) {
+                return Data::cast<Object>(data).access("tasks").clone();
+            }
+        ),
         CustomCreator<Gpio *(const GpioId&, const Gpio::Direction&)>(
             [](const GpioId& id, const Gpio::Direction& dir)-> Gpio * {
                 switch (dir) {
