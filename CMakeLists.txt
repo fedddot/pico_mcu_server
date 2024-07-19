@@ -28,6 +28,10 @@ add_library(pico_uart INTERFACE)
 target_include_directories(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_uart INTERFACE gpo pico_stdlib listener)
 
+add_library(pico_delay INTERFACE)
+target_include_directories(pico_delay INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(pico_delay INTERFACE delay pico_stdlib)
+
 add_library(pico_data_sender INTERFACE)
 target_include_directories(pico_data_sender INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_data_sender INTERFACE pico_uart pico_mcu_server_types)
@@ -39,6 +43,7 @@ target_link_libraries(
     PRIVATE
     pico_gpi
     pico_gpo
+    pico_delay
 
     mcu_server
     mcu_task_engine
@@ -47,6 +52,7 @@ target_link_libraries(
     json_data_serializer
     custom_retriever
     data_lib
+    delay
 )
 target_compile_definitions(
     pico_mcu_server
