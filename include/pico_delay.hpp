@@ -1,8 +1,6 @@
 #ifndef	PICO_DELAY_HPP
 #define	PICO_DELAY_HPP
 
-#include <memory>
-
 #include "pico/stdlib.h"
 
 #include "delay.hpp"
