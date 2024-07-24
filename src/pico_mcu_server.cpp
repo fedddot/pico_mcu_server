@@ -1,14 +1,17 @@
 #include <exception>
 #include <vector>
+#include <map>
+#include <string>
 
 #include "boards/pico.h"
 #include "custom_listener.hpp"
 #include "custom_receiver.hpp"
 #include "custom_retriever.hpp"
 #include "data.hpp"
+#include "hardware/clocks.h"
 #include "integer.hpp"
-#include "json_data_parser.hpp"
-#include "json_data_serializer.hpp"
+#include "decoding_data_parser.hpp"
+#include "encoding_data_serializer.hpp"
 #include "mcu_server.hpp"
 #include "mcu_task_engine.hpp"
 #include "mcu_task_type.hpp"
@@ -40,6 +43,7 @@ using namespace mcu_server;
 
 int main(void) {
     stdio_init_all();
+    clocks_init();
     McuTaskEngine<GpioId> task_engine(
         CustomRetriever<McuTaskType(const Data&)>(
             [](const Data& data) {
@@ -117,24 +121,39 @@ int main(void) {
     PicoDataSender sender(&uart, MSG_HEADER, MSG_TAIL);
     CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
 
+    const std::map<std::string, std::string> conversion_map {
+        {"ctor_id", "0"},
+        {"gpio_id", "1"},
+        {"gpio_dir", "2"},
+        {"gpio_state", "3"},
+        {"delay_ms", "4"},
+        {"tasks", "5"},
+        {"result", "6"}
+    };
+
     McuServer<GpioId, RawData, FoodData> server(
         &task_engine,
         &sender,
         &receiver,
-        JsonDataParser(),
-        JsonDataSerializer()
+        DecodingDataParser(conversion_map),
+        EncodingDataSerializer(conversion_map)
     );
+    RawData incoming_data("");
     uart.set_listener(
         CustomListener<RawData>(
-            [&server](const RawData& data)-> void {
-                server.feed(data);
+            [&incoming_data](const RawData& data)-> void {
+                incoming_data.insert(incoming_data.end(), data.begin(), data.end());
             }
         )
     );
     uart.send("MCU SERVER STARTED\n\r");
 
     while (true) {
-        ;
+        if (incoming_data.empty()) {
+            continue;
+        }
+        server.feed(incoming_data);
+        incoming_data = "";
     }
     return 0;
 }
