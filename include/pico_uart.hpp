@@ -62,6 +62,9 @@ namespace pico_mcu_server {
 
 	inline void PicoUart::send(const RawData& data) const {
 		for (auto ch: data) {
+			if (('\n' == ch) || ('\t' == ch) || (' ' == ch)) {
+				continue;
+			}
 			uart_putc(m_uart, ch);
 		}
 	}
@@ -82,6 +85,7 @@ namespace pico_mcu_server {
 			data.push_back(uart_getc(m_uart));
 		}
 		s_listener->on_event(data);
+		irq_clear(UART0_IRQ);
 	}
 }
 
