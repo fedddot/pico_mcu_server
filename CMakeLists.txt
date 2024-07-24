@@ -48,8 +48,8 @@ target_link_libraries(
     mcu_server
     mcu_task_engine
     pico_mcu_server_types
-    json_data_parser
-    json_data_serializer
+    decoding_data_parser
+    encoding_data_serializer
     custom_retriever
     data_lib
     delay
@@ -72,6 +72,7 @@ add_subdirectory(external)
 # set(TARGET_DIR ${CMAKE_BINARY_DIR}/bin)
 get_property(TARGET_DIR TARGET pico_mcu_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
 set(TARGET_PATH ${TARGET_DIR}/pico_mcu_server.elf)
+set(TARGET_PATH ${CMAKE_BINARY_DIR}/pico_mcu_server.elf)
 get_property(OPENOCD_WORKDIR TARGET build_openocd PROPERTY OPENOCD_RUN_PATH)
 get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
 
