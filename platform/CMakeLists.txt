@@ -10,11 +10,19 @@ target_link_libraries(pico_gpo INTERFACE gpo pico_stdlib)
 
 add_library(pico_uart_receiver INTERFACE)
 target_include_directories(pico_uart_receiver INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(pico_uart_receiver INTERFACE pico_stdlib message_receiver)
+target_link_libraries(pico_uart_receiver INTERFACE pico_stdlib message_receiver buffered_message_receiver)
 
 add_library(pico_uart INTERFACE)
+target_sources(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/pico_uart.cpp)
 target_include_directories(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(pico_uart INTERFACE gpo pico_stdlib listener)
+target_link_libraries(
+    pico_uart
+    INTERFACE
+    pico_stdlib
+    buffered_message_receiver
+    message_receiver
+    message_sender
+)
 
 add_library(pico_delay INTERFACE)
 target_include_directories(pico_delay INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
