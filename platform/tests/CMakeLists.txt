@@ -5,9 +5,9 @@ target_link_libraries(
     pico_gpi
 )
 
-add_executable(pico_uart_receiver_tests ${CMAKE_CURRENT_LIST_DIR}/src/ut_pico_uart_receiver.cpp)
+add_executable(pico_uart_tests ${CMAKE_CURRENT_LIST_DIR}/src/ut_pico_uart.cpp)
 target_link_libraries(
-	pico_uart_receiver_tests
+	pico_uart_tests
 	PRIVATE
-    pico_uart_receiver
+    pico_uart
 )
