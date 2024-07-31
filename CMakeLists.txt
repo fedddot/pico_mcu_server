@@ -14,7 +14,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_options(
-    -I/usr/include/newlib/c++/10.3.1
+    -I/usr/lib/arm-none-eabi/include/c++/10.3.1
+    -I/usr/lib/arm-none-eabi/include/c++/10.3.1/arm-none-eabi/thumb/v6-m/nofp
+    -I/usr/lib/arm-none-eabi/include/c++/10.3.1/backward
+    -I/usr/lib/gcc/arm-none-eabi/10.3.1/include
+    -I/usr/lib/gcc/arm-none-eabi/10.3.1/include-fixed
+    -I/usr/lib/arm-none-eabi/include
 )
 
 add_library(pico_mcu_server_types INTERFACE)
