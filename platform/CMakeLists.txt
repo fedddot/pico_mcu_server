@@ -6,6 +6,12 @@ add_library(pico_gpo INTERFACE)
 target_include_directories(pico_gpo INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_gpo INTERFACE gpo pico_stdlib)
 
+
+
+add_library(pico_uart_receiver INTERFACE)
+target_include_directories(pico_uart_receiver INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(pico_uart_receiver INTERFACE pico_stdlib message_receiver)
+
 add_library(pico_uart INTERFACE)
 target_include_directories(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_uart INTERFACE gpo pico_stdlib listener)
