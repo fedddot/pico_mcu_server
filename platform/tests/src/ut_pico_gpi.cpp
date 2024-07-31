@@ -1,8 +1,10 @@
+#include <stdexcept>
+
 #include "pico_gpi.hpp"
 
 using namespace pico_mcu_platform;
 
-TEST(ut_pico_gpi, ctor_dtor_sanity) {
+int main(void) {
 	// GIVEN
 	const int gpi_id(2);
 	
@@ -10,9 +12,16 @@ TEST(ut_pico_gpi, ctor_dtor_sanity) {
 	PicoGpi *instance_ptr(nullptr);
 
 	// THEN
-	ASSERT_NO_THROW(
+	try {
 		instance_ptr = new PicoGpi(gpi_id);
-	);
-	ASSERT_NO_THROW(delete instance_ptr);
-	instance_ptr = nullptr;
+		if (nullptr == instance_ptr) {
+			throw std::runtime_error("");
+		}
+		delete instance_ptr;
+		instance_ptr = nullptr;
+	} catch (...) {
+		return -1;
+	}
+
+	return 0;
 }
