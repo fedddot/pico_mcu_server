@@ -30,6 +30,8 @@ namespace pico_mcu_platform {
 		UartData receive() override;
 		void send(const UartData&) const override;
 	private:
+		UartData m_header;
+		UartData m_tail;
 		mcu_platform_utl::BufferedReceiver m_receiver;
 		enum : uint {
 			UART0_TX_PIN = 0,
@@ -42,7 +44,7 @@ namespace pico_mcu_platform {
 		static mcu_platform_utl::BufferedReceiver *s_receiver;
 	};
 
-	inline PicoUart::PicoUart(const UartData& header, const UartData& tail, const std::size_t& max_buffer_size, const Baud& baud): m_receiver(header, tail, max_buffer_size) {
+	inline PicoUart::PicoUart(const UartData& header, const UartData& tail, const std::size_t& max_buffer_size, const Baud& baud): m_header(header), m_tail(tail), m_receiver(header, tail, max_buffer_size) {
 		if (nullptr != s_receiver) {
 			throw std::runtime_error("uart receiver has already been initialized");
 		}
@@ -77,7 +79,7 @@ namespace pico_mcu_platform {
 	}
 
 	inline void PicoUart::send(const UartData& data) const {
-		for (auto ch: data) {
+		for (auto ch: m_header + data + m_tail) {
 			uart_putc(uart0, ch);
 		}
 	}
