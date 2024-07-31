@@ -17,3 +17,5 @@ target_link_libraries(pico_delay INTERFACE delay pico_stdlib)
 add_library(pico_data_sender INTERFACE)
 target_include_directories(pico_data_sender INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_data_sender INTERFACE pico_uart pico_mcu_server_types)
+
+add_subdirectory(tests EXCLUDE_FROM_ALL)
