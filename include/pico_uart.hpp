@@ -26,7 +26,7 @@ namespace pico_mcu_server {
 		enum : uint {
 			UART0_TX_PIN = 0,
 			UART0_RX_PIN = 1,
-			BAUD_RATE = 9600,
+			BAUD_RATE = 115200,
 			DATA_BITS = 8,
 			STOP_BITS = 1
 		};
@@ -85,7 +85,7 @@ namespace pico_mcu_server {
 			data.push_back(uart_getc(m_uart));
 		}
 		s_listener->on_event(data);
-		irq_clear(UART0_IRQ);
+		// irq_clear(UART0_IRQ);
 	}
 }
 

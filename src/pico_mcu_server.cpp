@@ -43,7 +43,7 @@ using namespace mcu_server;
 
 int main(void) {
     stdio_init_all();
-    clocks_init();
+    // clocks_init();
     McuTaskEngine<GpioId> task_engine(
         CustomRetriever<McuTaskType(const Data&)>(
             [](const Data& data) {
@@ -128,7 +128,9 @@ int main(void) {
         {"gpio_state", "3"},
         {"delay_ms", "4"},
         {"tasks", "5"},
-        {"result", "6"}
+        {"result", "6"},
+        {"reports", "7"},
+        {"what", "8"}
     };
 
     McuServer<GpioId, RawData, FoodData> server(
