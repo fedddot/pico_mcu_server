@@ -17,7 +17,7 @@ namespace pico_mcu_platform {
 	
 	class PicoUart: public mcu_platform::MessageReceiver<UartData>, public mcu_platform::MessageSender<UartData> {
 	public:
-		enum Baud {
+		enum class Baud: int {
 			BAUD9600,
 			BAUD115200
 		};
@@ -81,6 +81,17 @@ namespace pico_mcu_platform {
 	inline void PicoUart::send(const UartData& data) const {
 		for (auto ch: m_header + data + m_tail) {
 			uart_putc(uart0, ch);
+		}
+	}
+
+	inline uint PicoUart::baud_to_uint(const Baud& baud) {
+		switch (baud) {
+		case Baud::BAUD9600:
+			return 9600;
+		case Baud::BAUD115200:
+			return 115200;
+		default:
+			throw std::invalid_argument("unsupported baud rate received");
 		}
 	}
 
