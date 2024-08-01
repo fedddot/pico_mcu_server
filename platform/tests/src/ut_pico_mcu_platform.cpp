@@ -13,7 +13,7 @@ int main(void) {
 
 	// THEN
 	try {
-		instance_ptr = new PicoGpi(gpi_id);
+		instance_ptr = new PicoMcuPlatform();
 		if (nullptr == instance_ptr) {
 			throw std::runtime_error("");
 		}

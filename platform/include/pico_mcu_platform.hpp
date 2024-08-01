@@ -14,7 +14,7 @@ namespace pico_mcu_platform {
 
 	class PicoMcuPlatform: public mcu_platform::Platform<int> {
 	public:
-		PicoMcuPlatform();
+		PicoMcuPlatform() = default;
 		PicoMcuPlatform(const PicoMcuPlatform& other) = delete;
 		PicoMcuPlatform& operator=(const PicoMcuPlatform& other) = delete;
 
