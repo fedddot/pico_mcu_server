@@ -1,6 +1,6 @@
 #include <stdexcept>
 
-#include "pico_gpi.hpp"
+#include "pico_mcu_platform.hpp"
 
 using namespace pico_mcu_platform;
 
@@ -9,7 +9,7 @@ int main(void) {
 	const int gpi_id(2);
 	
 	// WHEN
-	PicoGpi *instance_ptr(nullptr);
+	PicoMcuPlatform *instance_ptr(nullptr);
 
 	// THEN
 	try {
