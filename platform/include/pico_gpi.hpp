@@ -2,27 +2,29 @@
 #define	PICO_GPI_HPP
 
 #include <stdexcept>
-#include <stdio.h>
-#include "gpio.hpp"
-#include "pico/stdlib.h"
+
 #include "hardware/gpio.h"
 
+#include "gpio.hpp"
 #include "gpi.hpp"
 
-namespace pico_mcu_server {
+namespace pico_mcu_platform {
 
-	class PicoGpi: public mcu_task_engine::Gpi {
+	class PicoGpi: public mcu_platform::Gpi {
 	public:
 		PicoGpi(int id);
 		PicoGpi(const PicoGpi& other) = default;
 		PicoGpi& operator=(const PicoGpi& other) = delete;
 		State state() const override;
-		mcu_task_engine::Gpio *clone() const override;
+		mcu_platform::Gpio *clone() const override;
 	private:
 		int m_id;
 	};
 
 	inline PicoGpi::PicoGpi(int id): m_id(id) {
+		if ((0 == m_id) || (1 == m_id)) {
+			throw std::invalid_argument("GPIOs id = 0, 1 are reserved for UART0");
+		}
 		gpio_init(m_id);
         gpio_set_dir(m_id, GPIO_IN);
 		gpio_pull_up(m_id);
@@ -35,7 +37,7 @@ namespace pico_mcu_server {
 		return State::LOW;
 	}
 
-	inline mcu_task_engine::Gpio *PicoGpi::clone() const {
+	inline mcu_platform::Gpio *PicoGpi::clone() const {
 		return new PicoGpi(*this);
 	}
 }
