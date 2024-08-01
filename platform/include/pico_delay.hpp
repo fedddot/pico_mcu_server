@@ -5,7 +5,7 @@
 
 #include "delay.hpp"
 
-namespace pico_mcu_server {
+namespace pico_mcu_platform {
 
 	class PicoDelay: public mcu_platform::Delay {
 	public:
