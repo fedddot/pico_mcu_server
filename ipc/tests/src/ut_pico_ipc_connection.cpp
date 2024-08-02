@@ -1,7 +1,5 @@
 #include <cstddef>
-#include <stdexcept>
 
-#include "pico/time.h"
 #include "pico_ipc_connection.hpp"
 
 using namespace pico_mcu_ipc;
