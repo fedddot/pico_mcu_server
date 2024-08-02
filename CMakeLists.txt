@@ -30,24 +30,17 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
-    pico_gpi
-    pico_gpo
-    pico_delay
-
-    mcu_server
-    mcu_task_engine
-    pico_mcu_server_types
-    json_data_parser
-    json_data_serializer
-    custom_retriever
-    data_lib
-    delay
+    pico_ipc_connection
+    mcu_factory
+    pico_mcu_platform
 )
 target_compile_definitions(
     pico_mcu_server
     PRIVATE
     -DMSG_HEADER="MSG_HEADER"
     -DMSG_TAIL="MSG_TAIL"
+    -DPICO_IPC_BAUD=9600UL
+    -DPICO_IPC_MAX_BUFF_SIZE=1000UL
 )
 target_compile_options(
     pico_mcu_server

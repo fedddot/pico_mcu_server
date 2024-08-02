@@ -1,34 +1,17 @@
-#include <exception>
-#include <vector>
 
-#include "boards/pico.h"
-#include "custom_listener.hpp"
-#include "custom_receiver.hpp"
-#include "custom_retriever.hpp"
+#include "array.hpp"
+#include "custom_creator.hpp"
+#include "custom_parser.hpp"
 #include "data.hpp"
+#include "gpio.hpp"
 #include "integer.hpp"
-#include "json_data_parser.hpp"
-#include "json_data_serializer.hpp"
-#include "mcu_server.hpp"
-#include "mcu_task_engine.hpp"
-#include "mcu_task_type.hpp"
 #include "object.hpp"
 #include "pico/stdio.h"
-#include "pico_data_sender.hpp"
-#include "pico_gpi.hpp"
-#include "pico_gpo.hpp"
-#include "pico_delay.hpp"
-#include "pico_mcu_server_types.hpp"
-#include "pico_uart.hpp"
-#include "string.hpp"
-
-using namespace mcu_server_utl;
-using namespace pico_mcu_server;
-using namespace mcu_task_engine;
-using namespace mcu_task_engine_utl;
-using namespace engine;
-using namespace engine_utl;
-using namespace mcu_server;
+#include "pico/types.h"
+#include "pico_ipc_connection.hpp"
+#include "mcu_factory.hpp"
+#include "pico_mcu_platform.hpp"
+#include <stdexcept>
 
 #ifndef MSG_HEADER
 #   define MSG_HEADER "MSG_HEADER"
@@ -38,57 +21,69 @@ using namespace mcu_server;
 #   define MSG_TAIL "MSG_TAIL"
 #endif
 
+#ifndef PICO_IPC_BAUD
+#   define PICO_IPC_BAUD 9600UL
+#endif
+
+#ifndef PICO_IPC_MAX_BUFF_SIZE
+#   define PICO_IPC_MAX_BUFF_SIZE 1000UL
+#endif
+
+using namespace pico_mcu_ipc;
+using namespace mcu_factory;
+using namespace pico_mcu_platform;
+using namespace mcu_server;
+using namespace mcu_platform;
+using namespace mcu_server_utl;
+
+using GpioId = int;
+using TaskFactory = mcu_factory::McuFactory<GpioId>;
+using TaskType = typename TaskFactory::TaskType;
+
+static PicoIpcConnection::Baud cast_baud(uint baud);
+
 int main(void) {
     stdio_init_all();
-    McuTaskEngine<GpioId> task_engine(
-        CustomRetriever<McuTaskType(const Data&)>(
+
+    PicoIpcConnection connection(
+        cast_baud(PICO_IPC_BAUD),
+        MSG_HEADER,
+        MSG_TAIL,
+        PICO_IPC_MAX_BUFF_SIZE
+    );
+
+    pico_mcu_platform::PicoMcuPlatform platform;
+
+    mcu_factory::McuFactory<GpioId> factory(
+        &platform,
+        CustomParser<TaskType(const Data&)>(
             [](const Data& data) {
-                return static_cast<McuTaskType>(Data::cast<Integer>(Data::cast<Object>(data).access("ctor_id")).get());
+                return static_cast<TaskType>(Data::cast<Integer>(Data::cast<Object>(data).access("task_type")).get());
             }
         ),
-        CustomCreator<Data *(const std::exception&)>(
-            [](const std::exception& e) {
-                Object report;
-                report.add("result", Integer(-1));
-                report.add("what", String(std::string(e.what())));
-                return report.clone();
-            }
-        ),
-        CustomRetriever<GpioId(const Data&)>(
+        CustomParser<GpioId(const Data&)>(
             [](const Data& data) {
                 return static_cast<GpioId>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_id")).get());
             }
         ),
-        CustomRetriever<Gpio::Direction(const Data&)>(
+        CustomParser<Gpio::Direction(const Data&)>(
             [](const Data& data) {
                 return static_cast<Gpio::Direction>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_dir")).get());
             }
         ),
-        CustomRetriever<Gpio::State(const Data&)>(
+        CustomParser<Gpio::State(const Data&)>(
             [](const Data& data) {
                 return static_cast<Gpio::State>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_state")).get());
             }
         ),
-        CustomRetriever<Data *(const Data&)>(
+        CustomParser<Array(const Data&)>(
             [](const Data& data) {
-                return Data::cast<Object>(data).access("tasks").clone();
+                return Data::cast<Array>(Data::cast<Object>(data).access("tasks"));
             }
         ),
-        CustomRetriever<int(const Data&)>(
+        CustomParser<unsigned int(const Data&)>(
             [](const Data& data) {
-                return Data::cast<Integer>(Data::cast<Object>(data).access("delay_ms")).get();
-            }
-        ),
-        CustomCreator<Gpio *(const GpioId&, const Gpio::Direction&)>(
-            [](const GpioId& id, const Gpio::Direction& dir)-> Gpio * {
-                switch (dir) {
-                case Gpio::Direction::IN:
-                    return new PicoGpi(id);
-                case Gpio::Direction::OUT:
-                    return new PicoGpo(id);
-                default:
-                    throw std::invalid_argument("unsupported GPIO direction");
-                }
+                return static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("delay_ms")).get());
             }
         ),
         CustomCreator<Data *(int)>(
@@ -106,35 +101,29 @@ int main(void) {
                 return report.clone();
             }
         ),
-        CustomCreator<Delay *(int)>(
-            [](int delay_ms) {
-                return new PicoDelay(delay_ms);
+        CustomCreator<Data *(const Array& tasks_results)>(
+            [](const Array& tasks_results) {
+                Object report;
+                report.add("result", Integer(0));
+                report.add("reports", tasks_results);
+                return report.clone();
             }
         )
     );
-
-    PicoUart uart;
-    PicoDataSender sender(&uart, MSG_HEADER, MSG_TAIL);
-    CustomReceiver receiver(MSG_HEADER, MSG_TAIL);
-
-    McuServer<GpioId, RawData, FoodData> server(
-        &task_engine,
-        &sender,
-        &receiver,
-        JsonDataParser(),
-        JsonDataSerializer()
-    );
-    uart.set_listener(
-        CustomListener<RawData>(
-            [&server](const RawData& data)-> void {
-                server.feed(data);
-            }
-        )
-    );
-    uart.send("MCU SERVER STARTED\n\r");
 
     while (true) {
         ;
     }
     return 0;
+}
+
+inline PicoIpcConnection::Baud cast_baud(uint baud) {
+    switch (baud) {
+    case 9600UL:
+        return PicoIpcConnection::Baud::B9600;
+    case 115200UL:
+        return PicoIpcConnection::Baud::B115200;
+    default:
+        throw std::invalid_argument("unsupported baud received");
+    }
 }
