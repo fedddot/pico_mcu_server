@@ -3,6 +3,8 @@
 
 #include "buffered_custom_ipc_connection.hpp"
 #include "hardware/gpio.h"
+#include "hardware/irq.h"
+#include "hardware/regs/intctrl.h"
 #include "hardware/uart.h"
 #include "ipc_connection.hpp"
 #include <stdexcept>
@@ -90,6 +92,7 @@ namespace pico_mcu_ipc {
 			return;
 		}
 		s_connection->feed(data);
+		irq_clear(UART0_IRQ);
 	}
 
 	inline void PicoIpcConnection::send_data(const PicoIpcData& data) {
