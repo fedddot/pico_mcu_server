@@ -4,10 +4,3 @@ target_link_libraries(
 	PRIVATE
     pico_mcu_platform
 )
-
-add_executable(pico_uart_tests ${CMAKE_CURRENT_LIST_DIR}/src/ut_pico_uart.cpp)
-target_link_libraries(
-	pico_uart_tests
-	PRIVATE
-    pico_uart
-)
