@@ -80,4 +80,5 @@ add_custom_target(
     WORKING_DIRECTORY ${OPENOCD_WORKDIR}
 )
 
+add_subdirectory(ipc)
 add_subdirectory(platform)
