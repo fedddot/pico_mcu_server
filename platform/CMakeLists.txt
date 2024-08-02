@@ -22,20 +22,4 @@ target_link_libraries(
     pico_delay
 )
 
-add_library(pico_uart_receiver INTERFACE)
-target_include_directories(pico_uart_receiver INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(pico_uart_receiver INTERFACE pico_stdlib message_receiver buffered_message_receiver)
-
-add_library(pico_uart INTERFACE)
-target_sources(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/pico_uart.cpp)
-target_include_directories(pico_uart INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(
-    pico_uart
-    INTERFACE
-    pico_stdlib
-    buffered_message_receiver
-    message_receiver
-    message_sender
-)
-
 add_subdirectory(tests EXCLUDE_FROM_ALL)
