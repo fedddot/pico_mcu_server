@@ -33,6 +33,8 @@ target_link_libraries(
     pico_ipc_connection
     mcu_factory
     pico_mcu_platform
+    json_data_parser
+    json_data_serializer
 )
 target_compile_definitions(
     pico_mcu_server

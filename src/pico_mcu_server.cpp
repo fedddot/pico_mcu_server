@@ -1,3 +1,5 @@
+#include <exception>
+#include <stdexcept>
 
 #include "array.hpp"
 #include "custom_creator.hpp"
@@ -5,13 +7,16 @@
 #include "data.hpp"
 #include "gpio.hpp"
 #include "integer.hpp"
+#include "json_data_parser.hpp"
+#include "json_data_serializer.hpp"
+#include "mcu_server.hpp"
 #include "object.hpp"
 #include "pico/stdio.h"
 #include "pico/types.h"
 #include "pico_ipc_connection.hpp"
 #include "mcu_factory.hpp"
 #include "pico_mcu_platform.hpp"
-#include <stdexcept>
+#include "string.hpp"
 
 #ifndef MSG_HEADER
 #   define MSG_HEADER "MSG_HEADER"
@@ -111,8 +116,34 @@ int main(void) {
         )
     );
 
+    McuServer<PicoIpcData> server(
+        JsonDataParser(),
+        JsonDataSerializer(),
+        factory,
+        CustomCreator<Data *(const std::exception& e)>(
+            [](const std::exception& e) {
+                Object report;
+                report.add("result", Integer(-1));
+                report.add("what", String(e.what()));
+                return report.clone();
+            }
+        )
+    );
+
     while (true) {
-        ;
+        try {
+            if (!connection.readable()) {
+                continue;
+            }
+            auto incoming_msg = connection.read();
+            auto report = server.run(incoming_msg);
+            connection.send(report);
+        } catch (const std::exception& e) {
+            Object fatal_failure_report;
+            fatal_failure_report.add("msg", String("an exception catched in server main loop"));
+            fatal_failure_report.add("what", String(e.what()));
+            connection.send(JsonDataSerializer().serialize(fatal_failure_report));
+        }
     }
     return 0;
 }
