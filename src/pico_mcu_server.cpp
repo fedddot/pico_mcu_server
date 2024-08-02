@@ -9,12 +9,12 @@
 #include "integer.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
+#include "mcu_factory.hpp"
 #include "mcu_server.hpp"
 #include "object.hpp"
 #include "pico/stdio.h"
 #include "pico/types.h"
 #include "pico_ipc_connection.hpp"
-#include "mcu_factory.hpp"
 #include "pico_mcu_platform.hpp"
 #include "string.hpp"
 
