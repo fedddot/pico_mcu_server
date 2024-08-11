@@ -1774,7 +1774,7 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 	struct scan_field *field = cmd->cmd.scan->fields;
 	unsigned scan_size = 0;
 
-	for (int i = 0; i < cmd->cmd.scan->num_fields; i++, field++) {
+	for (int i = 0; i < (int)(cmd->cmd.scan->num_fields); i++, field++) {
 		scan_size += field->num_bits;
 		LOG_DEBUG_IO("%s%s field %d/%d %d bits",
 			field->in_value ? "in" : "",
@@ -1783,7 +1783,7 @@ static void cmsis_dap_execute_scan(struct jtag_command *cmd)
 			cmd->cmd.scan->num_fields,
 			field->num_bits);
 
-		if (i == cmd->cmd.scan->num_fields - 1 && tap_get_state() != tap_get_end_state()) {
+		if (i == (int)(cmd->cmd.scan->num_fields - 1) && tap_get_state() != tap_get_end_state()) {
 			LOG_DEBUG_IO("Last field and have to move out of SHIFT state");
 			/* Last field, and we're leaving IRSHIFT/DRSHIFT. Clock last bit during tap
 			 * movement. This last field can't have length zero, it was checked above. */

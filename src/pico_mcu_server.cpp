@@ -3,9 +3,10 @@
 
 #include "array.hpp"
 #include "custom_creator.hpp"
-#include "custom_parser.hpp"
 #include "data.hpp"
+#include "default_mcu_factory_parsers.hpp"
 #include "gpio.hpp"
+#include "hardware/clocks.h"
 #include "integer.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
@@ -42,13 +43,15 @@ using namespace mcu_platform;
 using namespace mcu_server_utl;
 
 using GpioId = int;
-using TaskFactory = mcu_factory::McuFactory<GpioId>;
+using PersistentTaskId = int;
+using TaskFactory = mcu_factory::McuFactory<GpioId, PersistentTaskId>;
 using TaskType = typename TaskFactory::TaskType;
 
 static PicoIpcConnection::Baud cast_baud(uint baud);
 
 int main(void) {
     stdio_init_all();
+    clocks_init();
 
     PicoIpcConnection connection(
         cast_baud(PICO_IPC_BAUD),
@@ -57,40 +60,11 @@ int main(void) {
         PICO_IPC_MAX_BUFF_SIZE
     );
 
-    pico_mcu_platform::PicoMcuPlatform platform;
+    pico_mcu_platform::PicoMcuPlatform<GpioId, PersistentTaskId> platform;
 
-    mcu_factory::McuFactory<GpioId> factory(
+    mcu_factory::McuFactory<GpioId, PersistentTaskId> factory(
         &platform,
-        CustomParser<TaskType(const Data&)>(
-            [](const Data& data) {
-                return static_cast<TaskType>(Data::cast<Integer>(Data::cast<Object>(data).access("task_type")).get());
-            }
-        ),
-        CustomParser<GpioId(const Data&)>(
-            [](const Data& data) {
-                return static_cast<GpioId>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_id")).get());
-            }
-        ),
-        CustomParser<Gpio::Direction(const Data&)>(
-            [](const Data& data) {
-                return static_cast<Gpio::Direction>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_dir")).get());
-            }
-        ),
-        CustomParser<Gpio::State(const Data&)>(
-            [](const Data& data) {
-                return static_cast<Gpio::State>(Data::cast<Integer>(Data::cast<Object>(data).access("gpio_state")).get());
-            }
-        ),
-        CustomParser<Array(const Data&)>(
-            [](const Data& data) {
-                return Data::cast<Array>(Data::cast<Object>(data).access("tasks"));
-            }
-        ),
-        CustomParser<unsigned int(const Data&)>(
-            [](const Data& data) {
-                return static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("delay_ms")).get());
-            }
-        ),
+        DefaultMcuFactoryParsers<GpioId, PersistentTaskId, TaskType>(),
         CustomCreator<Data *(int)>(
             [](int result) {
                 Object report;

@@ -35,7 +35,9 @@ namespace pico_mcu_platform {
 	}
 
 	inline void PicoGpo::set_state(const State& state) {
-		gpio_put(m_id, (State::HIGH == state) ? 1 : 0);
+		if (state != this->state()) {
+			gpio_put(m_id, (State::HIGH == state) ? 1 : 0);
+		}
 	}
 
 	inline mcu_platform::Gpio *PicoGpo::clone() const {
