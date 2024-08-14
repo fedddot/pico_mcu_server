@@ -1,21 +1,22 @@
 #include <exception>
 #include <stdexcept>
 
-#include "array.hpp"
 #include "custom_creator.hpp"
-#include "data.hpp"
-#include "default_mcu_factory_parsers.hpp"
-#include "gpio.hpp"
+#include "default_stepper_motor_data_parser.hpp"
+#include "gpo.hpp"
 #include "integer.hpp"
+#include "inventory.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
-#include "mcu_factory.hpp"
 #include "mcu_server.hpp"
 #include "object.hpp"
 #include "pico/stdio.h"
 #include "pico/types.h"
+#include "pico_delay.hpp"
+#include "pico_gpo.hpp"
 #include "pico_ipc_connection.hpp"
-#include "pico_mcu_platform.hpp"
+#include "stepper_motor.hpp"
+#include "stepper_motor_tasks_factory.hpp"
 #include "string.hpp"
 
 #ifndef MSG_HEADER
@@ -42,9 +43,9 @@ using namespace mcu_platform;
 using namespace mcu_server_utl;
 
 using GpioId = int;
-using PersistentTaskId = int;
-using TaskFactory = mcu_factory::McuFactory<GpioId, PersistentTaskId>;
-using TaskType = typename TaskFactory::TaskType;
+using StepperId = int;
+using TaskFactory = mcu_factory::StepperMotorTasksFactory<StepperId, GpioId>;
+using MotorInventory = Inventory<StepperId, StepperMotor<GpioId>>;
 
 static PicoIpcConnection::Baud cast_baud(uint baud);
 
@@ -58,31 +59,21 @@ int main(void) {
         PICO_IPC_MAX_BUFF_SIZE
     );
 
-    pico_mcu_platform::PicoMcuPlatform<GpioId, PersistentTaskId> platform;
+    MotorInventory inventory;
 
-    mcu_factory::McuFactory<GpioId, PersistentTaskId> factory(
-        &platform,
-        DefaultMcuFactoryParsers<GpioId, PersistentTaskId, TaskType>(),
+    TaskFactory factory(
+        &inventory,
+        DefaultStepperMotorDataParser(),
+        CustomCreator<Gpo *(const GpioId&)>(
+            [](const GpioId& id)-> Gpo * {
+                return new PicoGpo(id);
+            }
+        ),
+        PicoDelay(),
         CustomCreator<Data *(int)>(
             [](int result) {
                 Object report;
                 report.add("result", Integer(result));
-                return report.clone();
-            }
-        ),
-        CustomCreator<Data *(int, const Gpio::State&)>(
-            [](int result, const Gpio::State& state) {
-                Object report;
-                report.add("result", Integer(result));
-                report.add("gpio_state", Integer(static_cast<int>(state)));
-                return report.clone();
-            }
-        ),
-        CustomCreator<Data *(const Array& tasks_results)>(
-            [](const Array& tasks_results) {
-                Object report;
-                report.add("result", Integer(0));
-                report.add("reports", tasks_results);
                 return report.clone();
             }
         )

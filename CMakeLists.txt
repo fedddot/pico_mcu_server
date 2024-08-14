@@ -40,7 +40,6 @@ target_link_libraries(
 
     pico_stdlib
 )
-
 target_compile_definitions(
     pico_mcu_server
     PRIVATE
@@ -50,18 +49,41 @@ target_compile_definitions(
     -DPICO_IPC_MAX_BUFF_SIZE=1000UL
 )
 
-target_compile_options(
-    pico_mcu_server
+add_executable(pico_stepper_motor_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_stepper_motor_server.cpp)
+target_include_directories(pico_stepper_motor_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+    pico_stepper_motor_server
     PRIVATE
-    -g
-    -O0
+    custom_creator
+    default_stepper_motor_data_parser
+    gpo
+    data_lib
+    inventory
+    json_data_parser
+    json_data_serializer
+    mcu_server
+    pico_delay
+    pico_gpo
+    pico_ipc_connection
+    stepper_motor
+    stepper_motor_tasks_factory
+
+    pico_stdlib
+)
+target_compile_definitions(
+    pico_stepper_motor_server
+    PRIVATE
+    -DMSG_HEADER="MSG_HEADER"
+    -DMSG_TAIL="MSG_TAIL"
+    -DPICO_IPC_BAUD=115200UL
+    -DPICO_IPC_MAX_BUFF_SIZE=1000UL
 )
 
 add_subdirectory(external)
 
 # set(TARGET_DIR ${CMAKE_BINARY_DIR}/bin)
-get_property(TARGET_DIR TARGET pico_mcu_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
-set(TARGET_PATH ${TARGET_DIR}/pico_mcu_server.elf)
+get_property(TARGET_DIR TARGET pico_stepper_motor_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
+set(TARGET_PATH ${TARGET_DIR}/pico_stepper_motor_server.elf)
 get_property(OPENOCD_WORKDIR TARGET build_openocd PROPERTY OPENOCD_RUN_PATH)
 get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
 
@@ -69,7 +91,7 @@ add_custom_target(
     upload_to_mcu
     COMMENT "Uploading ${TARGET_PATH} to pico board"
     COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000" -c "program ${TARGET_PATH} verify reset exit"
-    DEPENDS build_openocd pico_mcu_server
+    DEPENDS build_openocd pico_stepper_motor_server
     WORKING_DIRECTORY ${OPENOCD_WORKDIR}
 )
 
