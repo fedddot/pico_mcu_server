@@ -6,7 +6,6 @@
 #include "data.hpp"
 #include "default_mcu_factory_parsers.hpp"
 #include "gpio.hpp"
-#include "hardware/clocks.h"
 #include "integer.hpp"
 #include "json_data_parser.hpp"
 #include "json_data_serializer.hpp"
@@ -51,7 +50,6 @@ static PicoIpcConnection::Baud cast_baud(uint baud);
 
 int main(void) {
     stdio_init_all();
-    clocks_init();
 
     PicoIpcConnection connection(
         cast_baud(PICO_IPC_BAUD),
