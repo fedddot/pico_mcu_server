@@ -7,12 +7,13 @@
 #include "hardware/regs/intctrl.h"
 #include "hardware/uart.h"
 #include "ipc_connection.hpp"
+
 #include <stdexcept>
-#include <string>
+#include <vector>
 
 namespace pico_mcu_ipc {
 
-	using PicoIpcData = std::string;
+	using PicoIpcData = std::vector<char>;
 	
 	class PicoIpcConnection: public mcu_ipc::IpcConnection<PicoIpcData> {
 	public:
@@ -79,12 +80,12 @@ namespace pico_mcu_ipc {
 		return m_connection.read();
 	}
 
-	inline void PicoIpcConnection::send(const std::string& data) const {
+	inline void PicoIpcConnection::send(const PicoIpcData& data) const {
 		m_connection.send(data);
 	}
 
 	inline void PicoIpcConnection::on_received_cb() {
-		PicoIpcData data("");
+		PicoIpcData data;
 		while (uart_is_readable(uart0)) {
 			data.push_back(uart_getc(uart0));
 		}

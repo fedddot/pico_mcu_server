@@ -67,6 +67,8 @@ target_link_libraries(
     pico_ipc_connection
     stepper_motor
     stepper_motor_tasks_factory
+    zlib_compressor
+    zlib_decompressor
 
     pico_stdlib
 )
