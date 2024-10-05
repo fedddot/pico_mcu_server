@@ -1,33 +1,43 @@
 #ifndef	PICO_IPC_CONNECTION_HPP
 #define	PICO_IPC_CONNECTION_HPP
 
-#include "buffered_custom_ipc_connection.hpp"
-#include "hardware/gpio.h"
-#include "hardware/irq.h"
-#include "hardware/regs/intctrl.h"
-#include "hardware/uart.h"
+#include <functional>
+
+#include "buffered_ipc_connection.hpp"
 #include "ipc_connection.hpp"
-#include <stdexcept>
-#include <string>
+#include "request.hpp"
+#include "response.hpp"
 
 namespace pico_mcu_ipc {
 
-	using PicoIpcData = std::string;
+	using RawData = std::string;
+	using SubscriberId = std::string;
 	
-	class PicoIpcConnection: public mcu_ipc::IpcConnection<PicoIpcData> {
+	class PicoIpcConnection: public ipc::IpcConnection<SubscriberId, server::Request, server::Response> {
 	public:
+		using Callback = typename ipc::IpcConnection<SubscriberId, server::Request, server::Response>::Callback;
+		using RequestMatcher = typename ipc_utl::BufferedIpcConnection<SubscriberId, RawData>::RequestMatcher;
+		using RequestExtractor = typename ipc_utl::BufferedIpcConnection<SubscriberId, RawData>::RequestExtractor;
+		using ResponseSerializer = std::function<RawData(const server::Response&)>;
+		
 		enum class Baud: int {
 			B9600,
 			B115200
 		};
-		PicoIpcConnection(const Baud& baud, const PicoIpcData& head, const PicoIpcData& tail, const std::size_t& max_buff_size);
+		PicoIpcConnection(
+			const Baud& baud,
+			const ResponseSerializer& response_serializer,
+			const RequestMatcher& request_matcher,
+			const RequestExtractor& request_extractor
+		);
 		PicoIpcConnection(const PicoIpcConnection&) = delete;
 		PicoIpcConnection& operator=(const PicoIpcConnection&) = delete;
 		~PicoIpcConnection() noexcept override;
 
-		bool readable() const override;
-		PicoIpcData read() override;
-		void send(const PicoIpcData& data) const override;
+		void subscribe(const SubscriberId& id, const Callback& cb) override;
+		void unsubscribe(const SubscriberId& id) override;
+		bool is_subscribed(const SubscriberId& id) const override;
+		void send(const server::Response& outgoing_data) const override;
 	private:
 		enum : uint {
 			UART0_TX_PIN = 0,
@@ -35,81 +45,51 @@ namespace pico_mcu_ipc {
 			DATA_BITS = 8,
 			STOP_BITS = 1
 		};
-		using CustomConnection = mcu_ipc_utl::BufferedCustomIpcConnection<PicoIpcData>;
+		ResponseSerializer m_response_serializer;
+		using BufferedConnection = ipc_utl::BufferedIpcConnection<SubscriberId, RawData>;
+		BufferedConnection m_buffered_connection;
 		
-		CustomConnection m_connection;
-
-		static CustomConnection *s_connection;
+		static BufferedConnection *s_buffered_connection;
+		static void init_uart(const Baud& baud, BufferedConnection *buffered_connection);
+		static void uninit_uart();
 		static void on_received_cb();
-		static void send_data(const PicoIpcData& data);
+		static void send_data(const RawData& data);
 		static uint baud_to_uint(const Baud& baud);
 	};
 
-	inline PicoIpcConnection::PicoIpcConnection(const Baud& baud, const PicoIpcData& head, const PicoIpcData& tail, const std::size_t& max_buff_size): m_connection(head, tail, max_buff_size, send_data) {
-		if (nullptr != s_connection) {
-			throw std::runtime_error("uart0 connection is already created");
+	inline PicoIpcConnection::PicoIpcConnection(
+		const Baud& baud,
+		const ResponseSerializer& response_serializer,
+		const RequestMatcher& request_matcher,
+		const RequestExtractor& request_extractor
+	): m_response_serializer(response_serializer), m_buffered_connection(
+		request_matcher,
+		request_extractor,
+		[this](const server::Response& response) {
+			send_data(m_response_serializer(response));
 		}
-		uart_init(uart0, baud_to_uint(baud));
-		gpio_set_function(UART0_TX_PIN, GPIO_FUNC_UART);
-    	gpio_set_function(UART0_RX_PIN, GPIO_FUNC_UART);
-		uart_set_baudrate(uart0, baud_to_uint(baud));
-		uart_set_hw_flow(uart0, false, false);
-		uart_set_format(uart0, DATA_BITS, STOP_BITS, UART_PARITY_NONE);
-		uart_set_fifo_enabled(uart0, false);
-	    irq_set_exclusive_handler(UART0_IRQ, &on_received_cb);
-    	irq_set_enabled(UART0_IRQ, true);
-    	uart_set_irq_enables(uart0, true, false);
-		s_connection = &m_connection;
+	) {
+		init_uart(baud, &m_buffered_connection);
 	}
 
 	inline PicoIpcConnection::~PicoIpcConnection() noexcept {
-		irq_set_enabled(UART0_IRQ, false);
-    	uart_set_irq_enables(uart0, false, false);
-    	uart_deinit(uart0);
-		gpio_set_function(UART0_TX_PIN, GPIO_FUNC_NULL);
-    	gpio_set_function(UART0_RX_PIN, GPIO_FUNC_NULL);
-		s_connection = nullptr;
+		uninit_uart();
 	}
 
-	inline bool PicoIpcConnection::readable() const {
-		return m_connection.readable();
+	inline void PicoIpcConnection::subscribe(const SubscriberId& id, const Callback& cb) {
+		m_buffered_connection.subscribe(id, cb);
 	}
 
-	inline PicoIpcData PicoIpcConnection::read() {
-		return m_connection.read();
+	inline void PicoIpcConnection::unsubscribe(const SubscriberId& id) {
+		m_buffered_connection.unsubscribe(id);
 	}
 
-	inline void PicoIpcConnection::send(const std::string& data) const {
-		m_connection.send(data);
+	inline bool PicoIpcConnection::is_subscribed(const SubscriberId& id) const {
+		return m_buffered_connection.is_subscribed(id);
 	}
 
-	inline void PicoIpcConnection::on_received_cb() {
-		PicoIpcData data("");
-		while (uart_is_readable(uart0)) {
-			data.push_back(uart_getc(uart0));
-		}
-		if (!s_connection) {
-			return;
-		}
-		s_connection->feed(data);
-		irq_clear(UART0_IRQ);
-	}
-
-	inline void PicoIpcConnection::send_data(const PicoIpcData& data) {
-		for (auto ch: data) {
-			uart_putc(uart0, ch);
-		}
-	}
-
-	inline uint PicoIpcConnection::baud_to_uint(const Baud& baud) {
-		switch (baud) {
-		case Baud::B9600:
-			return 9600;
-		case Baud::B115200:
-			return 115200;
-		default:
-			throw std::invalid_argument("unsupported baud");
-		}
+	inline void PicoIpcConnection::send(const server::Response& outgoing_data) const {
+		m_buffered_connection.send(outgoing_data);
 	}
 }
 
