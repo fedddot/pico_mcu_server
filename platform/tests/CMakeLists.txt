@@ -4,5 +4,6 @@ target_link_libraries(
 	PRIVATE
     pico_gpi
 	pico_gpo
+	pico_stepper_motor
 	gpio
 )
