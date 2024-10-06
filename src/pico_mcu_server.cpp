@@ -1,25 +1,24 @@
-#include <exception>
 #include <stdexcept>
 
-#include "array.hpp"
-#include "custom_creator.hpp"
-#include "data.hpp"
-#include "default_mcu_factory_parsers.hpp"
-#include "gpio.hpp"
-#include "integer.hpp"
-#include "json_data_parser.hpp"
-#include "json_data_serializer.hpp"
-#include "mcu_factory.hpp"
-#include "mcu_server.hpp"
-#include "object.hpp"
-#include "pico/stdio.h"
-#include "pico/types.h"
-#include "pico_ipc_connection.hpp"
-#include "pico_mcu_platform.hpp"
-#include "string.hpp"
+#include <pico/stdio.h>
+#include <string>
 
-#ifndef MSG_HEADER
-#   define MSG_HEADER "MSG_HEADER"
+#include "data.hpp"
+#include "gpio_manager.hpp"
+#include "integer.hpp"
+#include "json_request_parser.hpp"
+#include "json_response_serializer.hpp"
+#include "object.hpp"
+#include "pico_gpi.hpp"
+#include "pico_gpo.hpp"
+#include "pico_ipc_connection.hpp"
+#include "server.hpp"
+#include "string.hpp"
+#include "vendor.hpp"
+#include "gpio.hpp"
+
+#ifndef MSG_HEAD
+#   define MSG_HEAD "MSG_HEAD"
 #endif
 
 #ifndef MSG_TAIL
@@ -35,87 +34,52 @@
 #endif
 
 using namespace pico_mcu_ipc;
-using namespace mcu_factory;
+using namespace server;
+using namespace server_utl;
+using namespace vendor;
+using namespace manager;
 using namespace pico_mcu_platform;
-using namespace mcu_server;
-using namespace mcu_platform;
-using namespace mcu_server_utl;
-
-using GpioId = int;
-using PersistentTaskId = int;
-using TaskFactory = mcu_factory::McuFactory<GpioId, PersistentTaskId>;
-using TaskType = typename TaskFactory::TaskType;
 
 static PicoIpcConnection::Baud cast_baud(uint baud);
+
+static bool match(const RawData& data, const RawData& head, const RawData& tail);
+static Request extract(RawData *data, const RawData& head, const RawData& tail);
+static RawData serialize(const server::Response& response, const RawData& head, const RawData& tail);
+
+static Gpio *create_gpio(const Data& data);
 
 int main(void) {
     stdio_init_all();
 
     PicoIpcConnection connection(
         cast_baud(PICO_IPC_BAUD),
-        MSG_HEADER,
-        MSG_TAIL,
-        PICO_IPC_MAX_BUFF_SIZE
+        [](const server::Response& response) {
+            return serialize(response, MSG_HEAD, MSG_TAIL);
+        },
+        [](const RawData& data) {
+            return match(data, MSG_HEAD, MSG_TAIL);
+        },
+        [](RawData *data) {
+            return extract(data, MSG_HEAD, MSG_TAIL);
+        }
     );
 
-    pico_mcu_platform::PicoMcuPlatform<GpioId, PersistentTaskId> platform;
-
-    mcu_factory::McuFactory<GpioId, PersistentTaskId> factory(
-        &platform,
-        DefaultMcuFactoryParsers<GpioId, PersistentTaskId, TaskType>(),
-        CustomCreator<Data *(int)>(
-            [](int result) {
-                Object report;
-                report.add("result", Integer(result));
-                return report.clone();
-            }
-        ),
-        CustomCreator<Data *(int, const Gpio::State&)>(
-            [](int result, const Gpio::State& state) {
-                Object report;
-                report.add("result", Integer(result));
-                report.add("gpio_state", Integer(static_cast<int>(state)));
-                return report.clone();
-            }
-        ),
-        CustomCreator<Data *(const Array& tasks_results)>(
-            [](const Array& tasks_results) {
-                Object report;
-                report.add("result", Integer(0));
-                report.add("reports", tasks_results);
-                return report.clone();
-            }
-        )
+    Vendor vendor;
+    vendor.register_resource(
+        "gpios",
+        GpioManager(create_gpio)
     );
 
-    McuServer<PicoIpcData> server(
-        JsonDataParser(),
-        JsonDataSerializer(),
-        factory,
-        CustomCreator<Data *(const std::exception& e)>(
-            [](const std::exception& e) {
-                Object report;
-                report.add("result", Integer(-1));
-                report.add("what", String(e.what()));
-                return report.clone();
-            }
-        )
+    Server<std::string> server(
+        &connection,
+        "cnc_server",
+        vendor
     );
+
+    server.run();
 
     while (true) {
-        try {
-            if (!connection.readable()) {
-                continue;
-            }
-            auto incoming_msg = connection.read();
-            auto report = server.run(incoming_msg);
-            connection.send(report);
-        } catch (const std::exception& e) {
-            Object fatal_failure_report;
-            fatal_failure_report.add("msg", String("an exception catched in server main loop"));
-            fatal_failure_report.add("what", String(e.what()));
-            connection.send(JsonDataSerializer().serialize(fatal_failure_report));
-        }
+        ;
     }
     return 0;
 }
@@ -128,5 +92,48 @@ inline PicoIpcConnection::Baud cast_baud(uint baud) {
         return PicoIpcConnection::Baud::B115200;
     default:
         throw std::invalid_argument("unsupported baud received");
+    }
+}
+
+inline bool match(const RawData& data, const RawData& head, const RawData& tail) {
+    auto head_pos = data.find(head);
+    if (RawData::npos == head_pos) {
+        return false;
+    }
+    auto tail_pos = data.find(tail, head_pos + tail.size());
+    if (RawData::npos == tail_pos) {
+        return false;
+    }
+    return true;
+}
+
+inline Request extract(RawData *data, const RawData& head, const RawData& tail) {
+    auto head_pos = data->find(head);
+    if (RawData::npos == head_pos) {
+        throw std::invalid_argument("missing head");
+    }
+    auto tail_pos = data->find(tail, head_pos + head.size());
+    if (RawData::npos == tail_pos) {
+        throw std::invalid_argument("missing tail");
+    }
+    RawData extracted(data->begin() + head_pos + head.size(), data->begin() + tail_pos);
+    data->erase(data->begin() + head_pos, data->begin() + tail_pos + tail.size());
+    return JsonRequestParser()(extracted);
+}
+
+inline RawData serialize(const server::Response& response, const RawData& head, const RawData& tail) {
+    return head + JsonResponseSerializer()(response) + tail;
+}
+
+inline Gpio *create_gpio(const Data& data) {
+    auto id = Data::cast<String>(Data::cast<Object>(data).access("id")).get();
+    auto dir = static_cast<Gpio::Direction>(Data::cast<Integer>(Data::cast<Object>(data).access("dir")).get());
+    switch (dir) {
+    case Gpio::Direction::IN:
+        return new PicoGpi(std::stoi(id));
+    case Gpio::Direction::OUT:
+        return new PicoGpo(std::stoi(id));
+    default:
+        throw std::invalid_argument("unsupported direction received");
     }
 }
