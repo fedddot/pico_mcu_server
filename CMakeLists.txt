@@ -52,27 +52,5 @@ target_compile_definitions(
 
 add_subdirectory(external)
 
-# set(TARGET_DIR ${CMAKE_BINARY_DIR}/bin)
-get_property(TARGET_DIR TARGET pico_mcu_server PROPERTY RUNTIME_OUTPUT_DIRECTORY)
-set(TARGET_PATH ${TARGET_DIR}/pico_mcu_server.elf)
-get_property(OPENOCD_WORKDIR TARGET build_openocd PROPERTY OPENOCD_RUN_PATH)
-get_property(OPENOCD_EXEC TARGET build_openocd PROPERTY OPENOCD_EXEC_PATH)
-
-add_custom_target(
-    upload_to_mcu
-    COMMENT "Uploading ${TARGET_PATH} to pico board"
-    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000" -c "program ${TARGET_PATH} verify reset exit"
-    DEPENDS build_openocd pico_mcu_server
-    WORKING_DIRECTORY ${OPENOCD_WORKDIR}
-)
-
-add_custom_target(
-    run_gdb_server
-    COMMENT "Running openocd gdb server"
-    COMMAND sudo ${OPENOCD_EXEC} -f interface/cmsis-dap.cfg -f target/rp2040.cfg -c "adapter speed 1000"
-    DEPENDS build_openocd
-    WORKING_DIRECTORY ${OPENOCD_WORKDIR}
-)
-
 add_subdirectory(ipc)
 add_subdirectory(platform)
