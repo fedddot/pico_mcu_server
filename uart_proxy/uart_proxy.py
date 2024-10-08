@@ -9,14 +9,20 @@ def get_param_from_args(param, args):
         if not arg.startswith(prefix):
             continue
         return arg[len(prefix):]
-    raise Exception("param {} is missing")
+    raise Exception("param {} is missing".format(param))
 
 intermediate_handler = UartProxyHandler(
     port = get_param_from_args("port", sys.argv),
     baud = int(get_param_from_args("baud", sys.argv))
 )
 
+address = get_param_from_args("address", sys.argv)
+host = address.split(":")[0]
+port = int(address.split(":")[1])
 proxy_server = HttpProxyServer(
     intermediate_request_handler = intermediate_handler,
-    server_address = get_param_from_args("host", sys.argv)
-) 
+    server_address = (host, port),
+    RequestHandlerClass = HttpProxyHandler
+)
+
+proxy_server.serve_forever()
