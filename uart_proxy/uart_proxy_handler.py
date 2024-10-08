@@ -2,7 +2,7 @@ import serial
 import json
 import re
 
-class UartRequestHandler:
+class UartProxyHandler:
     _port = None
     _baud = None
     _head = None
