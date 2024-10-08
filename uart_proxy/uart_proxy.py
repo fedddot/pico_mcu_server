@@ -1,24 +1,21 @@
-import sys
+import os
 from http_proxy_handler import HttpProxyHandler
 from http_proxy_server import HttpProxyServer
 from uart_proxy_handler import UartProxyHandler
 
-def get_param_from_args(param, args):
-    prefix = "--{}=".format(param)
-    for arg in args:
-        if not arg.startswith(prefix):
-            continue
-        return arg[len(prefix):]
-    raise Exception("param {} is missing".format(param))
+def get_param(name):
+    val = os.environ[name]
+    if None == val:
+        raise Exception("failed to get {} from the environment".format(name))
+    return val
 
 intermediate_handler = UartProxyHandler(
-    port = get_param_from_args("port", sys.argv),
-    baud = int(get_param_from_args("baud", sys.argv))
+    port = get_param("UART_PORT"),
+    baud = int(get_param("UART_BAUD"))
 )
 
-address = get_param_from_args("address", sys.argv)
-host = address.split(":")[0]
-port = int(address.split(":")[1])
+host = get_param("PROXY_HOST")
+port = int(get_param("PROXY_PORT"))
 proxy_server = HttpProxyServer(
     intermediate_request_handler = intermediate_handler,
     server_address = (host, port),
