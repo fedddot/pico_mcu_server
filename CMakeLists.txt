@@ -35,6 +35,8 @@ target_link_libraries(
     pico_gpi
     pico_gpo
     pico_ipc_connection
+    stepper_motor
+    pico_stepper_motor
     server
     vendor
     gpio

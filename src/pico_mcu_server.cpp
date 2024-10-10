@@ -12,10 +12,13 @@
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
 #include "pico_ipc_connection.hpp"
+#include "pico_stepper_motor.hpp"
 #include "server.hpp"
+#include "stepper_motor_manager.hpp"
 #include "string.hpp"
 #include "vendor.hpp"
 #include "gpio.hpp"
+#include "stepper_motor.hpp"
 
 #ifndef MSG_HEAD
 #   define MSG_HEAD "MSG_HEAD"
@@ -47,6 +50,7 @@ static Request extract(RawData *data, const RawData& head, const RawData& tail);
 static RawData serialize(const server::Response& response, const RawData& head, const RawData& tail);
 
 static Gpio *create_gpio(const Data& data);
+static StepperMotor *create_stepper_motor(const Data& data);
 
 int main(void) {
     stdio_init_all();
@@ -68,6 +72,10 @@ int main(void) {
     vendor.register_resource(
         "gpios",
         GpioManager(create_gpio)
+    );
+    vendor.register_resource(
+        "steppers",
+        StepperMotorManager(create_stepper_motor)
     );
 
     Server<std::string> server(
@@ -136,4 +144,8 @@ inline Gpio *create_gpio(const Data& data) {
     default:
         throw std::invalid_argument("unsupported direction received");
     }
+}
+
+inline StepperMotor *create_stepper_motor(const Data& data) {
+    return new PicoStepperMotor();
 }
