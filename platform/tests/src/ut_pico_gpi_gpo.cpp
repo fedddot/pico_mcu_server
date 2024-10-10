@@ -2,7 +2,6 @@
 
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
-#include "pico_stepper_motor.hpp"
 
 using namespace pico_mcu_platform;
 
