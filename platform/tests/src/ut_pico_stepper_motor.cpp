@@ -3,6 +3,7 @@
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
 #include "pico_stepper_motor.hpp"
+#include "stepper_motor.hpp"
 
 using namespace pico_mcu_platform;
 
@@ -26,17 +27,14 @@ int main(void) {
 	const int gpo_id(2);
 	
 	// WHEN
-	PicoGpi *gpi_ptr(nullptr);
-	PicoGpo *gpo_ptr(nullptr);
+	PicoStepperMotor *motor_ptr(nullptr);
 
 	// THEN
 	try {
-		gpi_ptr = new PicoGpi(gpi_id);
-		assert_ne(static_cast<PicoGpi *>(nullptr), gpi_ptr);
-		assert_eq(PicoGpi::Direction::IN, gpi_ptr->direction());
-		assert_eq(PicoGpi::State::LOW, gpi_ptr->state());
-		delete gpi_ptr;
-		gpi_ptr = nullptr;
+		motor_ptr = new PicoStepperMotor();
+		assert_ne(static_cast<PicoStepperMotor *>(nullptr), motor_ptr);
+		delete motor_ptr;
+		motor_ptr = nullptr;
 	} catch (...) {
 		return -1;
 	}
