@@ -34,7 +34,7 @@ target_link_libraries(
     json_response_serializer
     pico_gpi
     pico_gpo
-    pico_ipc_connection
+    pico_synchronous_ipc_connection
     stepper_motor
     pico_stepper_motor
     server

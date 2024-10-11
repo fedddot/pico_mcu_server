@@ -11,7 +11,7 @@
 #include "object.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
-#include "pico_ipc_connection.hpp"
+#include "pico_synchronous_ipc_connection.hpp"
 #include "pico_stepper_motor.hpp"
 #include "server.hpp"
 #include "stepper_motor_manager.hpp"
@@ -43,7 +43,7 @@ using namespace vendor;
 using namespace manager;
 using namespace pico_mcu_platform;
 
-static PicoIpcConnection::Baud cast_baud(uint baud);
+static PicoSynchronousIpcConnection::Baud cast_baud(uint baud);
 
 static bool match(const RawData& data, const RawData& head, const RawData& tail);
 static Request extract(RawData *data, const RawData& head, const RawData& tail);
@@ -55,7 +55,7 @@ static StepperMotor *create_stepper_motor(const Data& data);
 int main(void) {
     stdio_init_all();
 
-    PicoIpcConnection connection(
+    PicoSynchronousIpcConnection connection(
         cast_baud(PICO_IPC_BAUD),
         [](const server::Response& response) {
             return serialize(response, MSG_HEAD, MSG_TAIL);
@@ -87,17 +87,17 @@ int main(void) {
     server.run();
 
     while (true) {
-        ;
+        connection.loop();
     }
     return 0;
 }
 
-inline PicoIpcConnection::Baud cast_baud(uint baud) {
+inline PicoSynchronousIpcConnection::Baud cast_baud(uint baud) {
     switch (baud) {
     case 9600UL:
-        return PicoIpcConnection::Baud::B9600;
+        return PicoSynchronousIpcConnection::Baud::B9600;
     case 115200UL:
-        return PicoIpcConnection::Baud::B115200;
+        return PicoSynchronousIpcConnection::Baud::B115200;
     default:
         throw std::invalid_argument("unsupported baud received");
     }
