@@ -25,10 +25,16 @@ int main(void) {
 	
 	// WHEN
 	PicoStepperMotor *motor_ptr(nullptr);
+	const PicoStepperMotor::ShouldersMapping shoulders {
+		{ PicoStepperMotor::Shoulder::LEFT_LOW,		10 },
+		{ PicoStepperMotor::Shoulder::LEFT_HIGH,	11 },
+		{ PicoStepperMotor::Shoulder::RIGHT_LOW,	12 },
+		{ PicoStepperMotor::Shoulder::RIGHT_HIGH,	13 }
+	};
 
 	// THEN
 	try {
-		motor_ptr = new PicoStepperMotor();
+		motor_ptr = new PicoStepperMotor(shoulders);
 		assert_ne(static_cast<PicoStepperMotor *>(nullptr), motor_ptr);
 		delete motor_ptr;
 		motor_ptr = nullptr;
