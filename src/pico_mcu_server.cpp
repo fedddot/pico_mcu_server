@@ -147,18 +147,20 @@ inline Gpio *create_gpio(const Data& data) {
 }
 
 inline StepperMotor *create_stepper_motor(const Data& data) {
-    auto ll = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("left_low")).get());
-    auto lh = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("left_high")).get());
-    auto rl = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("right_low")).get());
-    auto rh = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("right_high")).get());
+    auto a0 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("a0")).get());
+    auto a1 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("a1")).get());
+    auto b0 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("b0")).get());
+    auto b1 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("b1")).get());
+    auto en = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("en")).get());
     return new PicoStepperMotor(
         PicoStepperMotor::ShouldersMapping(
             {
-                {PicoStepperMotor::Shoulder::LEFT_LOW, ll},
-                {PicoStepperMotor::Shoulder::LEFT_HIGH, lh},
-                {PicoStepperMotor::Shoulder::RIGHT_LOW, rl},
-                {PicoStepperMotor::Shoulder::RIGHT_HIGH, rh},
+                {PicoStepperMotor::Shoulder::A0, a0},
+                {PicoStepperMotor::Shoulder::A1, a1},
+                {PicoStepperMotor::Shoulder::B0, b0},
+                {PicoStepperMotor::Shoulder::B1, b1},
             }
-        )
+        ),
+        en
     );
 }

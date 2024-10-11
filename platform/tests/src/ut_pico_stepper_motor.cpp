@@ -26,10 +26,10 @@ int main(void) {
 	// WHEN
 	PicoStepperMotor *motor_ptr(nullptr);
 	const PicoStepperMotor::ShouldersMapping shoulders {
-		{ PicoStepperMotor::Shoulder::LEFT_LOW,		10 },
-		{ PicoStepperMotor::Shoulder::LEFT_HIGH,	11 },
-		{ PicoStepperMotor::Shoulder::RIGHT_LOW,	12 },
-		{ PicoStepperMotor::Shoulder::RIGHT_HIGH,	13 }
+		{ PicoStepperMotor::Shoulder::A1,		10 },
+		{ PicoStepperMotor::Shoulder::A0,	11 },
+		{ PicoStepperMotor::Shoulder::B1,	12 },
+		{ PicoStepperMotor::Shoulder::B0,	13 }
 	};
 
 	// THEN

@@ -18,13 +18,13 @@ namespace pico_mcu_platform {
 	class PicoStepperMotor: public manager::StepperMotor {
 	public:
 		enum class Shoulder: int {
-			LEFT_HIGH,
-			LEFT_LOW,
-			RIGHT_HIGH,
-			RIGHT_LOW
+			A0,
+			A1,
+			B0,
+			B1
 		};
 		using ShouldersMapping = std::map<Shoulder, unsigned int>;
-		PicoStepperMotor(const ShouldersMapping& shoulders);
+		PicoStepperMotor(const ShouldersMapping& shoulders, const unsigned int enable);
 		PicoStepperMotor(const PicoStepperMotor& other) = default;
 		PicoStepperMotor& operator=(const PicoStepperMotor& other) = delete;
 		void steps(const Direction& direction, const unsigned int steps_num, const unsigned int on_time, const unsigned int off_time) override;
@@ -37,29 +37,27 @@ namespace pico_mcu_platform {
 		using States = std::array<State, STATES_NUM>;
 
 		Shoulders m_shoulders;
+		std::shared_ptr<manager::Gpo> m_enable;
+
 		static const States s_states;
-		static const State s_shutdown_state;
 		std::size_t m_current_state_number;
 
 		static std::size_t get_next_state(const std::size_t& from, const Direction& direction);
-		void apply_state(const State& state);
+		void apply_state(const State& state, const unsigned int on_time, const unsigned int off_time);
 	};
 
-	inline PicoStepperMotor::PicoStepperMotor(const ShouldersMapping& shoulders): m_current_state_number(0UL) {
+	inline PicoStepperMotor::PicoStepperMotor(const ShouldersMapping& shoulders, const unsigned int enable): m_current_state_number(0UL), m_enable(new PicoGpo(enable)) {
 		for (const auto& [shoulder, gpo_num]: shoulders) {
 			m_shoulders.insert({shoulder, std::shared_ptr<manager::Gpo>(new PicoGpo(gpo_num))});
 		}
-		apply_state(s_shutdown_state);
+		m_enable->set_state(GpioState::LOW);
 	}
 
 	inline void PicoStepperMotor::steps(const Direction& direction, const unsigned int steps_num, const unsigned int on_time, const unsigned int off_time) {
 		auto steps_to_go(steps_num);
 		while (steps_to_go) {
 			auto next_state = get_next_state(m_current_state_number, direction);
-			apply_state(s_states[next_state]);
-			sleep_ms(on_time);
-			apply_state(s_shutdown_state);
-			sleep_ms(off_time);
+			apply_state(s_states[next_state], on_time, off_time);
 			m_current_state_number = next_state;
 			--steps_to_go;
 		}
@@ -93,10 +91,15 @@ namespace pico_mcu_platform {
 		}
 	}
 
-	inline void PicoStepperMotor::apply_state(const State& state) {
+	inline void PicoStepperMotor::apply_state(const State& state, const unsigned int on_time, const unsigned int off_time) {
+		m_enable->set_state(GpioState::LOW);
 		for (const auto& [shoulder, gpo_state]: state) {
 			m_shoulders[shoulder]->set_state(gpo_state);
 		}
+		m_enable->set_state(GpioState::HIGH);
+		sleep_us(on_time);
+		m_enable->set_state(GpioState::LOW);
+		sleep_us(off_time);
 	}
 }
 

@@ -6,78 +6,104 @@ using namespace pico_mcu_platform;
 using Shoulder = typename PicoStepperMotor::Shoulder;
 using GpioState = typename manager::Gpio::State;
 
+// const PicoStepperMotor::States pico_mcu_platform::PicoStepperMotor::s_states {
+// 	PicoStepperMotor::State(
+// 		{
+// 			{Shoulder::A0,	GpioState::HIGH},
+// 			{Shoulder::A1,	GpioState::LOW},
+// 			{Shoulder::B0,	GpioState::LOW},
+// 			{Shoulder::B1,	GpioState::LOW}
+// 		}
+// 	),
+// 	PicoStepperMotor::State(
+// 		{
+// 			{Shoulder::A0,	GpioState::LOW},
+// 			{Shoulder::A1,	GpioState::LOW},
+// 			{Shoulder::B0,	GpioState::HIGH},
+// 			{Shoulder::B1,	GpioState::LOW}
+// 		}
+// 	),
+// 	PicoStepperMotor::State(
+// 		{
+// 			{Shoulder::A0,	GpioState::LOW},
+// 			{Shoulder::A1,	GpioState::HIGH},
+// 			{Shoulder::B0,	GpioState::LOW},
+// 			{Shoulder::B1,	GpioState::LOW}
+// 		}
+// 	),
+// 	PicoStepperMotor::State(
+// 		{
+// 			{Shoulder::A0,	GpioState::LOW},
+// 			{Shoulder::A1,	GpioState::LOW},
+// 			{Shoulder::B0,	GpioState::LOW},
+// 			{Shoulder::B1,	GpioState::HIGH}
+// 		}
+// 	)
+// };
+
 const PicoStepperMotor::States pico_mcu_platform::PicoStepperMotor::s_states {
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::HIGH},
-			{Shoulder::LEFT_LOW,	GpioState::LOW},
-			{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-			{Shoulder::RIGHT_LOW,	GpioState::LOW}
+			{Shoulder::A1,	GpioState::HIGH},
+			{Shoulder::A0,	GpioState::LOW},
+			{Shoulder::B1,	GpioState::LOW},
+			{Shoulder::B0,	GpioState::LOW}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::HIGH},
-			{Shoulder::LEFT_LOW,	GpioState::LOW},
-			{Shoulder::RIGHT_HIGH,	GpioState::HIGH},
-			{Shoulder::RIGHT_LOW,	GpioState::LOW}
+			{Shoulder::A1,	GpioState::HIGH},
+			{Shoulder::A0,	GpioState::LOW},
+			{Shoulder::B1,	GpioState::HIGH},
+			{Shoulder::B0,	GpioState::LOW}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::LOW},
-			{Shoulder::LEFT_LOW,	GpioState::LOW},
-			{Shoulder::RIGHT_HIGH,	GpioState::HIGH},
-			{Shoulder::RIGHT_LOW,	GpioState::LOW}
+			{Shoulder::A1,	GpioState::LOW},
+			{Shoulder::A0,	GpioState::LOW},
+			{Shoulder::B1,	GpioState::HIGH},
+			{Shoulder::B0,	GpioState::LOW}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::LOW},
-			{Shoulder::LEFT_LOW,	GpioState::HIGH},
-			{Shoulder::RIGHT_HIGH,	GpioState::HIGH},
-			{Shoulder::RIGHT_LOW,	GpioState::LOW}
+			{Shoulder::A1,	GpioState::LOW},
+			{Shoulder::A0,	GpioState::HIGH},
+			{Shoulder::B1,	GpioState::HIGH},
+			{Shoulder::B0,	GpioState::LOW}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::LOW},
-			{Shoulder::LEFT_LOW,	GpioState::HIGH},
-			{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-			{Shoulder::RIGHT_LOW,	GpioState::LOW}
+			{Shoulder::A1,	GpioState::LOW},
+			{Shoulder::A0,	GpioState::HIGH},
+			{Shoulder::B1,	GpioState::LOW},
+			{Shoulder::B0,	GpioState::LOW}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::LOW},
-			{Shoulder::LEFT_LOW,	GpioState::HIGH},
-			{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-			{Shoulder::RIGHT_LOW,	GpioState::HIGH}
+			{Shoulder::A1,	GpioState::LOW},
+			{Shoulder::A0,	GpioState::HIGH},
+			{Shoulder::B1,	GpioState::LOW},
+			{Shoulder::B0,	GpioState::HIGH}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::LOW},
-			{Shoulder::LEFT_LOW,	GpioState::LOW},
-			{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-			{Shoulder::RIGHT_LOW,	GpioState::HIGH}
+			{Shoulder::A1,	GpioState::LOW},
+			{Shoulder::A0,	GpioState::LOW},
+			{Shoulder::B1,	GpioState::LOW},
+			{Shoulder::B0,	GpioState::HIGH}
 		}
 	),
 	PicoStepperMotor::State(
 		{
-			{Shoulder::LEFT_HIGH,	GpioState::HIGH},
-			{Shoulder::LEFT_LOW,	GpioState::LOW},
-			{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-			{Shoulder::RIGHT_LOW,	GpioState::HIGH}
+			{Shoulder::A1,	GpioState::HIGH},
+			{Shoulder::A0,	GpioState::LOW},
+			{Shoulder::B1,	GpioState::LOW},
+			{Shoulder::B0,	GpioState::HIGH}
 		}
 	)
 };
-
-const PicoStepperMotor::State pico_mcu_platform::PicoStepperMotor::s_shutdown_state(
-	{
-		{Shoulder::LEFT_HIGH,	GpioState::LOW},
-		{Shoulder::LEFT_LOW,	GpioState::LOW},
-		{Shoulder::RIGHT_HIGH,	GpioState::LOW},
-		{Shoulder::RIGHT_LOW,	GpioState::LOW}
-	}
-);
