@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <map>
 #include <memory>
+#include <pico/time.h>
 #include <stdexcept>
 
 #include "gpio.hpp"
@@ -58,6 +59,7 @@ namespace pico_mcu_platform {
 			apply_state(s_states[next_state]);
 			m_current_state_number = next_state;
 			--steps_to_go;
+			sleep_ms(step_duration_ms);
 		}
 	}
 

@@ -147,5 +147,18 @@ inline Gpio *create_gpio(const Data& data) {
 }
 
 inline StepperMotor *create_stepper_motor(const Data& data) {
-    return new PicoStepperMotor();
+    auto ll = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("left_low")).get());
+    auto lh = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("left_high")).get());
+    auto rl = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("right_low")).get());
+    auto rh = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("right_high")).get());
+    return new PicoStepperMotor(
+        PicoStepperMotor::ShouldersMapping(
+            {
+                {PicoStepperMotor::Shoulder::LEFT_LOW, ll},
+                {PicoStepperMotor::Shoulder::LEFT_HIGH, lh},
+                {PicoStepperMotor::Shoulder::RIGHT_LOW, rl},
+                {PicoStepperMotor::Shoulder::RIGHT_HIGH, rh},
+            }
+        )
+    );
 }
