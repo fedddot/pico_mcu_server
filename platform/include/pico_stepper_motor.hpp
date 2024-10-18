@@ -28,7 +28,6 @@ namespace pico_mcu_platform {
 		PicoStepperMotor(const PicoStepperMotor& other) = default;
 		PicoStepperMotor& operator=(const PicoStepperMotor& other) = delete;
 		void steps(const Direction& direction, const unsigned int steps_num, const unsigned int on_time, const unsigned int off_time) override;
-		manager::StepperMotor *clone() const override;
 	private:
 		using Shoulders = std::map<Shoulder, std::shared_ptr<manager::Gpo>>;
 		using GpioState = typename manager::Gpio::State;
@@ -61,10 +60,6 @@ namespace pico_mcu_platform {
 			m_current_state_number = next_state;
 			--steps_to_go;
 		}
-	}
-
-	inline manager::StepperMotor *PicoStepperMotor::clone() const {
-		return new PicoStepperMotor(*this);
 	}
 
 	inline std::size_t PicoStepperMotor::get_next_state(const std::size_t& from, const Direction& direction) {
