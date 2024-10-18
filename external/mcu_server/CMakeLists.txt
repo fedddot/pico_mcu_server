@@ -1,7 +1,7 @@
 FetchContent_Declare(
     mcu_server
     GIT_REPOSITORY  https://github.com/fedddot/mcu_server.git
-    GIT_TAG         restfullize-interface
+    GIT_TAG         main
 )
 FetchContent_GetProperties(mcu_server)
 if(NOT mcu_server_POPULATED)
