@@ -1,24 +1,27 @@
 #include <stdexcept>
-
-#include <pico/stdio.h>
 #include <string>
 
+#include "pico/stdio.h"
+
 #include "data.hpp"
+#include "gpio.hpp"
 #include "gpio_manager.hpp"
+#include "in_memory_inventory.hpp"
 #include "integer.hpp"
 #include "json_request_parser.hpp"
 #include "json_response_serializer.hpp"
-#include "object.hpp"
+#include "movement_manager.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
-#include "pico_synchronous_ipc_connection.hpp"
 #include "pico_stepper_motor.hpp"
+#include "pico_synchronous_ipc_connection.hpp"
+#include "request.hpp"
+#include "resources_vendor.hpp"
 #include "server.hpp"
+#include "server_types.hpp"
+#include "stepper_motor.hpp"
 #include "stepper_motor_manager.hpp"
 #include "string.hpp"
-#include "vendor.hpp"
-#include "gpio.hpp"
-#include "stepper_motor.hpp"
 
 #ifndef MSG_HEAD
 #   define MSG_HEAD "MSG_HEAD"
@@ -49,8 +52,44 @@ static bool match(const RawData& data, const RawData& head, const RawData& tail)
 static Request extract(RawData *data, const RawData& head, const RawData& tail);
 static RawData serialize(const server::Response& response, const RawData& head, const RawData& tail);
 
-static Gpio *create_gpio(const Data& data);
-static StepperMotor *create_stepper_motor(const Data& data);
+static Gpio *create_gpio(const Body& create_body);
+static StepperMotor *create_stepper_motor(const Body& create_body);
+static Body read_stepper_motor(const StepperMotor& motor);
+
+class ClonableWrapper: public ResourcesVendor::ClonableManager {
+public:
+    ClonableWrapper(Manager *origin): m_manager(origin) {
+        if (!origin) {
+            throw std::invalid_argument("invalid origin ptr received");
+        }
+    }
+    ClonableWrapper(const ClonableWrapper&) = default;
+    ClonableWrapper& operator=(const ClonableWrapper&) = default;
+    
+    void create_resource(const Body& create_request_body) override {
+        m_manager->create_resource(create_request_body);
+    }
+    Body read_resource(const Path& route) const override {
+        return m_manager->read_resource(route);
+    }
+    Body read_all_resources() const override {
+        return m_manager->read_all_resources();
+    }
+    void update_resource(const Path& route, const Body& update_request_body) override {
+        m_manager->update_resource(route, update_request_body);
+    }
+    void delete_resource(const Path& route) override {
+        m_manager->delete_resource(route);
+    }
+    bool contains(const Path& route) const override {
+        return m_manager->contains(route);
+    }
+    Manager *clone() const override {
+        return new ClonableWrapper(*this);
+    }
+private:
+    std::shared_ptr<Manager> m_manager;
+};
 
 int main(void) {
     stdio_init_all();
@@ -68,20 +107,38 @@ int main(void) {
         }
     );
 
-    Vendor vendor;
-    vendor.register_resource(
+    InMemoryInventory<ResourceId, Gpio> gpio_inventory;
+    InMemoryInventory<ResourceId, StepperMotor> stepper_motor_inventory;
+
+    ResourcesVendor vendor;
+    vendor.add_manager(
         "gpios",
-        GpioManager(create_gpio)
+        ClonableWrapper(
+            new GpioManager(
+                &gpio_inventory,
+                create_gpio
+            )
+        )
     );
-    vendor.register_resource(
+    vendor.add_manager(
         "steppers",
-        StepperMotorManager(create_stepper_motor)
+        ClonableWrapper(
+            new StepperMotorManager(
+                &stepper_motor_inventory,
+                create_stepper_motor,
+                read_stepper_motor
+            )
+        )
+    );
+    vendor.add_manager(
+        "movements",
+        ClonableWrapper(new MovementManager(&stepper_motor_inventory))
     );
 
     Server<std::string> server(
         &connection,
         "cnc_server",
-        vendor
+        &vendor
     );
 
     server.run();
@@ -133,9 +190,9 @@ inline RawData serialize(const server::Response& response, const RawData& head, 
     return head + JsonResponseSerializer()(response) + tail;
 }
 
-inline Gpio *create_gpio(const Data& data) {
-    auto id = Data::cast<String>(Data::cast<Object>(data).access("id")).get();
-    auto dir = static_cast<Gpio::Direction>(Data::cast<Integer>(Data::cast<Object>(data).access("dir")).get());
+inline Gpio *create_gpio(const Body& create_body) {
+    auto id = Data::cast<String>(create_body.access("id")).get();
+    auto dir = static_cast<Gpio::Direction>(Data::cast<Integer>(create_body.access("dir")).get());
     switch (dir) {
     case Gpio::Direction::IN:
         return new PicoGpi(std::stoi(id));
@@ -146,12 +203,12 @@ inline Gpio *create_gpio(const Data& data) {
     }
 }
 
-inline StepperMotor *create_stepper_motor(const Data& data) {
-    auto a0 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("a0")).get());
-    auto a1 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("a1")).get());
-    auto b0 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("b0")).get());
-    auto b1 = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("b1")).get());
-    auto en = static_cast<unsigned int>(Data::cast<Integer>(Data::cast<Object>(data).access("en")).get());
+inline StepperMotor *create_stepper_motor(const Body& create_body) {
+    auto a0 = static_cast<unsigned int>(Data::cast<Integer>(create_body.access("a0")).get());
+    auto a1 = static_cast<unsigned int>(Data::cast<Integer>(create_body.access("a1")).get());
+    auto b0 = static_cast<unsigned int>(Data::cast<Integer>(create_body.access("b0")).get());
+    auto b1 = static_cast<unsigned int>(Data::cast<Integer>(create_body.access("b1")).get());
+    auto en = static_cast<unsigned int>(Data::cast<Integer>(create_body.access("en")).get());
     return new PicoStepperMotor(
         PicoStepperMotor::ShouldersMapping(
             {
@@ -163,4 +220,9 @@ inline StepperMotor *create_stepper_motor(const Data& data) {
         ),
         en
     );
+}
+
+inline Body read_stepper_motor(const StepperMotor& motor) {
+    (void)motor;
+    return Body();
 }

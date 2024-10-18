@@ -28,18 +28,22 @@ target_link_libraries(
     pico_mcu_server
     PRIVATE
     data_lib
+    gpio
     gpio_manager
-    json_data_serializer
+    in_memory_inventory
     json_request_parser
     json_response_serializer
+    movement_manager
     pico_gpi
     pico_gpo
-    pico_synchronous_ipc_connection
-    stepper_motor
     pico_stepper_motor
+    pico_synchronous_ipc_connection
+    request
+    resources_vendor
     server
-    vendor
-    gpio
+    server_types
+    stepper_motor
+    stepper_motor_manager
 
     pico_stdlib
 )
