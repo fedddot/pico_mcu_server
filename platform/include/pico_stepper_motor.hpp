@@ -69,6 +69,7 @@ namespace pico_mcu_platform {
 	inline void PicoStepperMotor::step(const Direction& direction) {
 		auto next_state = get_next_state(m_current_state_number, direction);
 		apply_state(s_states[next_state]);
+		m_current_state_number = next_state;
 	}
 
 	inline std::size_t PicoStepperMotor::get_next_state(const std::size_t& from, const Direction& direction) {

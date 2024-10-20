@@ -1,7 +1,9 @@
 #include <stdexcept>
 #include <string>
 
+#include "object.hpp"
 #include "pico/stdio.h"
+#include "pico/time.h"
 
 #include "data.hpp"
 #include "gpio.hpp"
@@ -10,6 +12,7 @@
 #include "integer.hpp"
 #include "json_request_parser.hpp"
 #include "json_response_serializer.hpp"
+#include "linear_movement.hpp"
 #include "movement.hpp"
 #include "movement_manager.hpp"
 #include "pico_gpi.hpp"
@@ -19,6 +22,7 @@
 #include "request.hpp"
 #include "resources_vendor.hpp"
 #include "server.hpp"
+#include "server_exception.hpp"
 #include "server_types.hpp"
 #include "stepper_motor.hpp"
 #include "stepper_motor_manager.hpp"
@@ -57,7 +61,7 @@ static Gpio *create_gpio(const Body& create_body);
 static StepperMotor *create_stepper_motor(const Body& create_body);
 static Body read_stepper_motor(const StepperMotor& motor);
 static void write_stepper_motor(StepperMotor *motor, const Data& config);
-static Movement *create_movement(const Body& create_body);
+static Movement *create_movement(Inventory<server::ResourceId, StepperMotor> *stepper_motor_inventory, const Body& create_body);
 static Body read_movement(const Movement& movement);
 
 class ClonableWrapper: public ResourcesVendor::ClonableManager {
@@ -136,12 +140,15 @@ int main(void) {
             )
         )
     );
+    InMemoryInventory<ResourceId, StepperMotor> *stepper_motor_inventory_ptr(&stepper_motor_inventory);
     vendor.add_manager(
         "movements",
         ClonableWrapper(
             new MovementManager(
                 &movement_inventory,
-                create_movement,
+                [stepper_motor_inventory_ptr](const Body& body) {
+                    return create_movement(stepper_motor_inventory_ptr, body);
+                },
                 read_movement
             )
         )
@@ -240,13 +247,19 @@ inline Body read_stepper_motor(const StepperMotor& motor) {
 }
 
 static void write_stepper_motor(StepperMotor *motor, const Data& config) {
-    throw std::runtime_error("NOT IMPLEMENTED");
+    throw ServerException(ResponseCode::BAD_REQUEST, "method is not implemented yet");
 }
 
-static Movement *create_movement(const Body& create_body) {
-    throw std::runtime_error("NOT IMPLEMENTED");
+static Movement *create_movement(Inventory<server::ResourceId, StepperMotor> *stepper_motor_inventory, const Body& create_body) {
+    return new LinearMovement(
+        stepper_motor_inventory,
+        [](const unsigned int delay) {
+            sleep_us(delay);
+        },
+        static_cast<bool>(Data::cast<Integer>(Data::cast<Object>(create_body.access("config")).access("inverse")).get())
+    );
 }
 
 static Body read_movement(const Movement& movement) {
-    throw std::runtime_error("NOT IMPLEMENTED");
+    throw ServerException(ResponseCode::BAD_REQUEST, "method is not implemented yet");
 }

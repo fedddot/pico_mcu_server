@@ -33,6 +33,7 @@ target_link_libraries(
     in_memory_inventory
     json_request_parser
     json_response_serializer
+    linear_movement
     movement
     movement_manager
     pico_gpi
