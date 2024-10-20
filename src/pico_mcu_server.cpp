@@ -10,6 +10,7 @@
 #include "integer.hpp"
 #include "json_request_parser.hpp"
 #include "json_response_serializer.hpp"
+#include "movement.hpp"
 #include "movement_manager.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
@@ -55,6 +56,9 @@ static RawData serialize(const server::Response& response, const RawData& head, 
 static Gpio *create_gpio(const Body& create_body);
 static StepperMotor *create_stepper_motor(const Body& create_body);
 static Body read_stepper_motor(const StepperMotor& motor);
+static void write_stepper_motor(StepperMotor *motor, const Data& config);
+static Movement *create_movement(const Body& create_body);
+static Body read_movement(const Movement& movement);
 
 class ClonableWrapper: public ResourcesVendor::ClonableManager {
 public:
@@ -109,6 +113,7 @@ int main(void) {
 
     InMemoryInventory<ResourceId, Gpio> gpio_inventory;
     InMemoryInventory<ResourceId, StepperMotor> stepper_motor_inventory;
+    InMemoryInventory<ResourceId, Movement> movement_inventory;
 
     ResourcesVendor vendor;
     vendor.add_manager(
@@ -126,13 +131,20 @@ int main(void) {
             new StepperMotorManager(
                 &stepper_motor_inventory,
                 create_stepper_motor,
-                read_stepper_motor
+                read_stepper_motor,
+                write_stepper_motor
             )
         )
     );
     vendor.add_manager(
         "movements",
-        ClonableWrapper(new MovementManager(&stepper_motor_inventory))
+        ClonableWrapper(
+            new MovementManager(
+                &movement_inventory,
+                create_movement,
+                read_movement
+            )
+        )
     );
 
     Server<std::string> server(
@@ -225,4 +237,16 @@ inline StepperMotor *create_stepper_motor(const Body& create_body) {
 inline Body read_stepper_motor(const StepperMotor& motor) {
     (void)motor;
     return Body();
+}
+
+static void write_stepper_motor(StepperMotor *motor, const Data& config) {
+    throw std::runtime_error("NOT IMPLEMENTED");
+}
+
+static Movement *create_movement(const Body& create_body) {
+    throw std::runtime_error("NOT IMPLEMENTED");
+}
+
+static Body read_movement(const Movement& movement) {
+    throw std::runtime_error("NOT IMPLEMENTED");
 }
