@@ -3,6 +3,7 @@
 build
 !.gitignore
 !.github
+!*.dockerfile
 !*.json
 !*.c
 !*.cpp
