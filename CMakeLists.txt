@@ -27,26 +27,21 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
+    cnc_server
     data_lib
     gpio
-    gpio_manager
-    in_memory_inventory
     json_request_parser
     json_response_serializer
     linear_movement
-    movement
-    movement_manager
     pico_gpi
     pico_gpo
     pico_stepper_motor
     pico_synchronous_ipc_connection
     request
-    resources_vendor
-    server
+    server_exception
     server_types
     stepper_motor
-    stepper_motor_manager
-
+    
     pico_stdlib
 )
 target_compile_definitions(
