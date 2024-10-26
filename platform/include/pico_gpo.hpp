@@ -10,14 +10,14 @@
 
 namespace pico_mcu_platform {
 
-	class PicoGpo: public mcu_platform::Gpo {
+	class PicoGpo: public manager::Gpo {
 	public:
 		PicoGpo(int id);
 		PicoGpo(const PicoGpo& other) = default;
 		PicoGpo& operator=(const PicoGpo& other) = delete;
 		State state() const override;
 		void set_state(const State& state) override;
-		mcu_platform::Gpio *clone() const override;
+		manager::Gpio *clone() const override;
 	private:
 		uint m_id;
 	};
@@ -40,7 +40,7 @@ namespace pico_mcu_platform {
 		}
 	}
 
-	inline mcu_platform::Gpio *PicoGpo::clone() const {
+	inline manager::Gpio *PicoGpo::clone() const {
 		return new PicoGpo(*this);
 	}
 }

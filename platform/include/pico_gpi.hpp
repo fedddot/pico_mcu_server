@@ -10,13 +10,13 @@
 
 namespace pico_mcu_platform {
 
-	class PicoGpi: public mcu_platform::Gpi {
+	class PicoGpi: public manager::Gpi {
 	public:
 		PicoGpi(int id);
 		PicoGpi(const PicoGpi& other) = default;
 		PicoGpi& operator=(const PicoGpi& other) = delete;
 		State state() const override;
-		mcu_platform::Gpio *clone() const override;
+		manager::Gpio *clone() const override;
 	private:
 		int m_id;
 	};
@@ -37,7 +37,7 @@ namespace pico_mcu_platform {
 		return State::LOW;
 	}
 
-	inline mcu_platform::Gpio *PicoGpi::clone() const {
+	inline manager::Gpio *PicoGpi::clone() const {
 		return new PicoGpi(*this);
 	}
 }

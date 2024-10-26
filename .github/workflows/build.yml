@@ -1,0 +1,23 @@
+name: Build Pico Cnc Server
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Build dev container
+        working-directory: ${{github.workspace}}
+        run: |
+          docker build -t pico_cnc_img -f docker/dev.dockerfile .
+
+      - name: Run server build
+        working-directory: ${{github.workspace}}
+        run: |
+          docker run --network=host -v ${{github.workspace}}:/usr/src/app pico_cnc_img /bin/bash -c "mkdir build && cd build && cmake .. && make pico_mcu_server"
