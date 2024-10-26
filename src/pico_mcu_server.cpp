@@ -162,6 +162,9 @@ inline StepperMotor *create_stepper_motor(const Data& create_cfg) {
     PicoStepperMotor::ShouldersMapping shoulders;
     Data::cast<Object>(create_cfg).for_each(
         [&shoulders](const std::string& shoulder_tag, const Data& id) {
+            if ("en" == shoulder_tag) {
+                return;
+            }
             shoulders.insert({str_to_shoulder(shoulder_tag), static_cast<unsigned int>(Data::cast<Integer>(id).get())});
         }
     );
