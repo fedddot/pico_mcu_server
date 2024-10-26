@@ -8,8 +8,14 @@ class HttpProxyHandler(BaseHTTPRequestHandler):
         match intermediate_response_object["code"]:
             case 0:
                 return HTTPStatus.OK
+            case 1:
+                return HTTPStatus.METHOD_NOT_ALLOWED
             case 2:
                 return HTTPStatus.NOT_FOUND
+            case 3:
+                return HTTPStatus.BAD_REQUEST
+            case 4:
+                return HTTPStatus.UNSPECIFIED
             case _:
                 raise Exception("unsupported result code received")
 
@@ -21,11 +27,15 @@ class HttpProxyHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'json')
             self.end_headers()
             self.wfile.write(bytes(string_response, 'utf-8'))
-        except:
+        except Exception as e:
             self.send_response(HTTPStatus.INTERNAL_SERVER_ERROR)
             self.send_header('Content-type', 'json')
             self.end_headers()
-            self.wfile.write(b'{}')   
+            response = {
+                "what": str(e)
+            }
+            string_response = json.dumps(response)
+            self.wfile.write(bytes(string_response, 'utf-8'))   
 
     def _read_data(self):
         content_length = int(self.headers['Content-Length'])
