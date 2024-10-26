@@ -20,4 +20,4 @@ jobs:
       - name: Run server build
         working-directory: ${{github.workspace}}
         run: |
-          docker run --network=host -rm test_cnc_img /bin/bash -c "mkdir build && cd build && cmake .. && make pico_mcu_server"
+          docker run --network=host -v ${{github.workspace}}:/usr/src/app pico_cnc_img /bin/bash -c "mkdir build && cd build && cmake .. && make pico_mcu_server"
