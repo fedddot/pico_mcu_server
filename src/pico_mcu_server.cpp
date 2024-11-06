@@ -1,7 +1,9 @@
+#include <cstdint>
 #include <map>
 #include <stdexcept>
 #include <string>
 
+#include "double.hpp"
 #include "pico/stdio.h"
 #include "pico/time.h"
 
@@ -11,7 +13,6 @@
 #include "integer.hpp"
 #include "json_request_parser.hpp"
 #include "json_response_serializer.hpp"
-#include "linear_movement.hpp"
 #include "object.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
@@ -54,7 +55,7 @@ static RawData serialize(const server::Response& response, const RawData& head, 
 
 static Gpio *create_gpio(const Data& create_body);
 static StepperMotor *create_stepper_motor(const Data& create_body);
-static void timeout(const LinearMovement::TimeUnit& timeout_us);
+static void timeout(const double& timeout);
 
 int main(void) {
     stdio_init_all();
@@ -172,6 +173,7 @@ inline StepperMotor *create_stepper_motor(const Data& create_cfg) {
     return new PicoStepperMotor(shoulders, en);
 }
 
-inline void timeout(const LinearMovement::TimeUnit& timeout_us) {
-    sleep_us(timeout_us);
+inline void timeout(const double& timeout) {
+    const auto delay_us = static_cast<uint64_t>(static_cast<float>(1000000) * timeout);
+    sleep_us(delay_us);
 }

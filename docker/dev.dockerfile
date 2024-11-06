@@ -4,7 +4,7 @@ RUN apt update
 RUN apt-get -y install cmake git
 
 # pico-sdk deps
-RUN apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+RUN apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gdb-multiarch
 
 # install externals
 ARG EXTERNAL_PATH=/usr/src/external

@@ -97,11 +97,9 @@ namespace pico_mcu_platform {
 	}
 
 	inline void PicoStepperMotor::apply_state(const State& state) {
-		disable();
 		for (const auto& [shoulder, gpo_state]: state) {
 			m_shoulders[shoulder]->set_state(gpo_state);
 		}
-		enable();
 	}
 }
 
