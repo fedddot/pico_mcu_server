@@ -29,4 +29,6 @@ class UartProxyHandler:
             search_result = re.search("{}(.*){}".format(self._head, self._tail), response_str)
             if None == search_result:
                 continue
-            return json.loads(search_result.group(1))        
+            result_raw = search_result.group(1)        
+            print("raw result = " + result_raw)
+            return json.loads(result_raw)
