@@ -77,7 +77,6 @@ int main(void) {
         &connection,
         "cnc_server",
         create_gpio,
-        create_stepper_motor,
         timeout
     );
 

@@ -6,16 +6,4 @@ add_library(pico_gpo INTERFACE)
 target_include_directories(pico_gpo INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(pico_gpo INTERFACE gpo pico_stdlib)
 
-add_library(pico_stepper_motor INTERFACE)
-target_sources(pico_stepper_motor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/pico_stepper_motor.cpp)
-target_include_directories(pico_stepper_motor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(
-    pico_stepper_motor
-    INTERFACE
-    gpio
-    gpo
-    pico_gpo
-    stepper_motor    
-)
-
 add_subdirectory(tests EXCLUDE_FROM_ALL)
