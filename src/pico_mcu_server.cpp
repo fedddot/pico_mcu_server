@@ -1,9 +1,7 @@
 #include <cstdint>
-#include <map>
 #include <stdexcept>
 #include <string>
 
-#include "double.hpp"
 #include "pico/stdio.h"
 #include "pico/time.h"
 
@@ -16,12 +14,10 @@
 #include "object.hpp"
 #include "pico_gpi.hpp"
 #include "pico_gpo.hpp"
-#include "pico_stepper_motor.hpp"
 #include "pico_synchronous_ipc_connection.hpp"
 #include "request.hpp"
 #include "server_exception.hpp"
 #include "server_types.hpp"
-#include "stepper_motor.hpp"
 
 #ifndef MSG_HEAD
 #   define MSG_HEAD "MSG_HEAD"
@@ -54,7 +50,6 @@ static Request extract(RawData *data, const RawData& head, const RawData& tail);
 static RawData serialize(const server::Response& response, const RawData& head, const RawData& tail);
 
 static Gpio *create_gpio(const Data& create_body);
-static StepperMotor *create_stepper_motor(const Data& create_body);
 static void timeout(const double& timeout);
 
 int main(void) {
@@ -141,35 +136,6 @@ inline Gpio *create_gpio(const Data& create_cfg) {
     default:
         throw ServerException(ResponseCode::BAD_REQUEST, "unsupported direction received");
     }
-}
-
-inline typename PicoStepperMotor::Shoulder str_to_shoulder(const std::string& shoulder) {
-    static const std::map<std::string, PicoStepperMotor::Shoulder> mapping {
-        {"a0", PicoStepperMotor::Shoulder::A0},
-        {"a1", PicoStepperMotor::Shoulder::A1},
-        {"b0", PicoStepperMotor::Shoulder::B0},
-        {"b1", PicoStepperMotor::Shoulder::B1}
-    };
-    const auto iter(mapping.find(shoulder));
-    if (mapping.end() == iter) {
-        throw ServerException(ResponseCode::BAD_REQUEST, "bad shoulder tag received: " + shoulder);
-    }
-    return iter->second;
-}
-
-inline StepperMotor *create_stepper_motor(const Data& create_cfg) {
-    const auto& cfg_obj(Data::cast<Object>(create_cfg));
-    PicoStepperMotor::ShouldersMapping shoulders;
-    Data::cast<Object>(create_cfg).for_each(
-        [&shoulders](const std::string& shoulder_tag, const Data& id) {
-            if ("en" == shoulder_tag) {
-                return;
-            }
-            shoulders.insert({str_to_shoulder(shoulder_tag), static_cast<unsigned int>(Data::cast<Integer>(id).get())});
-        }
-    );
-    const auto en(static_cast<unsigned int>(Data::cast<Integer>(cfg_obj.access("en")).get()));
-    return new PicoStepperMotor(shoulders, en);
 }
 
 inline void timeout(const double& timeout) {

@@ -35,7 +35,6 @@ target_link_libraries(
     linear_movement
     pico_gpi
     pico_gpo
-    pico_stepper_motor
     pico_synchronous_ipc_connection
     request
     server_exception
