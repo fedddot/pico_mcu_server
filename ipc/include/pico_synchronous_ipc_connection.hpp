@@ -16,8 +16,8 @@ namespace pico_mcu_ipc {
 	class PicoSynchronousIpcConnection: public ipc::IpcConnection<SubscriberId, server::Request, server::Response> {
 	public:
 		using Callback = typename ipc::IpcConnection<SubscriberId, server::Request, server::Response>::Callback;
-		using RequestMatcher = typename ipc::BufferedIpcConnection<SubscriberId, RawData>::RequestMatcher;
-		using RequestExtractor = typename ipc::BufferedIpcConnection<SubscriberId, RawData>::RequestExtractor;
+		using RequestMatcher = typename server_utl::BufferedIpcConnection<SubscriberId, RawData>::RequestMatcher;
+		using RequestExtractor = typename server_utl::BufferedIpcConnection<SubscriberId, RawData>::RequestExtractor;
 		using ResponseSerializer = std::function<RawData(const server::Response&)>;
 		
 		enum class Baud: int {
@@ -47,7 +47,7 @@ namespace pico_mcu_ipc {
 			STOP_BITS = 1
 		};
 		ResponseSerializer m_response_serializer;
-		using BufferedConnection = ipc::BufferedIpcConnection<SubscriberId, RawData>;
+		using BufferedConnection = server_utl::BufferedIpcConnection<SubscriberId, RawData>;
 		BufferedConnection m_buffered_connection;
 		
 		static void init_uart(const Baud& baud, BufferedConnection *buffered_connection);
