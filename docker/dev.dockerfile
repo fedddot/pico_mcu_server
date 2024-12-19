@@ -17,6 +17,9 @@ RUN git clone https://github.com/raspberrypi/pico-sdk.git pico-sdk
 RUN cd pico-sdk && git submodule update --init
 ENV PICO_SDK_PATH=${EXTERNAL_PATH}/pico-sdk
 
+RUN git clone --branch 2.5.13 https://github.com/adafruit/Adafruit_SSD1306.git ssd1306
+ENV SSD1306_PATH=${EXTERNAL_PATH}/ssd1306
+
 # server sources should be mapped to this path during container run
 WORKDIR /usr/src/app
 

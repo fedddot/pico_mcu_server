@@ -23,24 +23,12 @@ add_compile_options(
 )
 
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)
-target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include $ENV{SSD1306_PATH})
 target_link_libraries(
     pico_mcu_server
     PRIVATE
-    cnc_server
-    data_lib
-    gpio
-    json_request_parser
-    json_response_serializer
-    linear_movement
-    pico_gpi
     pico_gpo
-    pico_synchronous_ipc_connection
-    request
-    server_exception
-    server_types
-    stepper_motor
-    
+    hardware_i2c
     pico_stdlib
 )
 target_compile_definitions(
