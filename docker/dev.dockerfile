@@ -9,12 +9,12 @@ RUN apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm
 ARG EXTERNAL_PATH=/usr/src/external
 WORKDIR ${EXTERNAL_PATH} 
 
-RUN git clone https://github.com/fedddot/mcu_server.git mcu_server
-ENV MCU_SERVER_PATH=${EXTERNAL_PATH}/mcu_server
-
-RUN git clone https://github.com/raspberrypi/pico-sdk.git pico-sdk
+RUN git clone --branch=2.1.1 https://github.com/raspberrypi/pico-sdk.git pico-sdk
 RUN cd pico-sdk && git submodule update --init
 ENV PICO_SDK_PATH=${EXTERNAL_PATH}/pico-sdk
+
+RUN git clone --branch=epic/implement-read-write-run-once-concept https://github.com/fedddot/mcu_server.git mcu_server
+ENV MCU_SERVER_PATH=${EXTERNAL_PATH}/mcu_server
 
 # server sources should be mapped to this path during container run
 WORKDIR /usr/src/app
