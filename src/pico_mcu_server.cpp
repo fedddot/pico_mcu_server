@@ -90,6 +90,10 @@ public:
         gpio_set_dir(m_enable_pin, GPIO_OUT);
         gpio_put(m_enable_pin, 0);
     }
+    ~PicoStepper() noexcept override {
+        gpio_put(m_enable_pin, 0);
+        gpio_deinit(m_enable_pin);
+    }
     void set_state(const State& state) override {
         switch (state) {
         case State::ENABLED:
