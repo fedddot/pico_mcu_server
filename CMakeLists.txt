@@ -10,7 +10,7 @@ project(pico_mcu_server C CXX ASM)
 
 pico_sdk_init()
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 21)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -38,6 +38,3 @@ target_compile_definitions(
 )
 
 add_subdirectory(external)
-
-add_subdirectory(ipc)
-add_subdirectory(platform)
