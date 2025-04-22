@@ -82,9 +82,13 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
 }
 
 inline StepperMotor *create_stepper() {
+    enum {GPIO_LED_PIN = 25};
+    gpio_init(GPIO_LED_PIN);
+    gpio_set_dir(GPIO_LED_PIN, GPIO_OUT);
+    gpio_put(GPIO_LED_PIN, 0);
     return new manager_tests::TestStepperMotor(
         [](const Direction&) {
-            // DOES NOTHING
+            gpio_put(GPIO_LED_PIN, !gpio_get(GPIO_LED_PIN));
         }
     );
 }
