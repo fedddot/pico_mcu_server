@@ -33,8 +33,8 @@ target_link_libraries(
 target_compile_definitions(
     pico_mcu_server
     PRIVATE
-    -DMSG_PREAMBLE="MSG_HEAD"
-    -DMSG_SIZE_FIELD_LEN=8UL
+    -DMSG_PREAMBLE="MSG_PREAMBLE"
+    -DMSG_SIZE_FIELD_LEN=4UL
     -DPICO_IPC_BAUD=115200UL
 )
 
