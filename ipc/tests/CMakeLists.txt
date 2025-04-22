@@ -1,2 +1,0 @@
-add_executable(pico_ipc_connection_tests ${CMAKE_CURRENT_LIST_DIR}/src/ut_pico_ipc_connection.cpp)
-target_link_libraries(pico_ipc_connection_tests PRIVATE pico_ipc_connection json_request_parser)

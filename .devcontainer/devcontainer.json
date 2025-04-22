@@ -1,0 +1,27 @@
+{
+	"name": "pico-mcu-server-dev-container",
+	"image": "pico-mcu-server-dev:latest",
+	"privileged": true,
+	"runArgs": [ "--network=host" ],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-azuretools.vscode-docker",
+				"mhutchie.git-graph",
+				"twxs.cmake",
+				"ms-vscode.cmake-tools",
+				"josetr.cmake-language-support-vscode",
+				"zxh404.vscode-proto3",
+				"ms-vscode.cpptools",
+				"hediet.vscode-drawio"
+			],
+			"settings": {
+				"clangd.path": "/usr/lib/llvm-18/bin/clangd",
+				"clangd.arguments": ["--query-driver=/usr/bin/arm-none-eabi-g++,/usr/bin/arm-none-eabi-gcc"]
+			}
+		}
+	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/usr/app/src,type=bind",
+	"workspaceFolder": "/usr/app/src"
+}
