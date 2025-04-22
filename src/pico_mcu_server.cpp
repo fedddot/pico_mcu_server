@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <stdexcept>
 #include <string>
 
 #include "pico/stdio.h"
@@ -16,7 +17,6 @@
 #include "stepper_ipc_data_infra.hpp"
 #include "stepper_motor.hpp"
 #include "stepper_motor_data.hpp"
-#include "test_stepper_motor.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -81,16 +81,43 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline StepperMotor *create_stepper() {
-    enum {GPIO_LED_PIN = 25};
-    gpio_init(GPIO_LED_PIN);
-    gpio_set_dir(GPIO_LED_PIN, GPIO_OUT);
-    gpio_put(GPIO_LED_PIN, 0);
-    return new manager_tests::TestStepperMotor(
-        [](const Direction&) {
-            gpio_put(GPIO_LED_PIN, !gpio_get(GPIO_LED_PIN));
+class PicoStepper: public StepperMotor {
+public:
+    PicoStepper(
+        const std::size_t& enable_pin
+    ): m_enable_pin(enable_pin) {
+        gpio_init(m_enable_pin);
+        gpio_set_dir(m_enable_pin, GPIO_OUT);
+        gpio_put(m_enable_pin, 0);
+    }
+    void set_state(const State& state) override {
+        switch (state) {
+        case State::ENABLED:
+            gpio_put(m_enable_pin, 1);
+            break;
+        case State::DISABLED:
+            gpio_put(m_enable_pin, 0);
+            break;
+        default:
+            throw std::invalid_argument("unsupported state received");
         }
-    );
+    }
+    State state() const override {
+        return gpio_get(m_enable_pin) ? State::ENABLED : State::DISABLED;
+    }
+
+    void step(const Direction& direction) override {
+        throw std::runtime_error("NOT IMPLEMENTED");
+    }
+private:
+    const std::size_t m_enable_pin;
+};
+
+inline StepperMotor *create_stepper() {
+    enum: std::size_t {
+        GPIO_LED_PIN = 25U,
+    };
+    return new PicoStepper(GPIO_LED_PIN);
 }
 
 inline void write_raw_data(const RawData& data) {

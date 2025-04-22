@@ -26,7 +26,6 @@ target_link_libraries(
     stepper_host
     stepper_ipc_data_infra
     stepper_motor
-    test_stepper_motor
     
     pico_stdlib
 )
