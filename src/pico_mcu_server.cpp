@@ -15,6 +15,8 @@
 #include "stepper_host.hpp"
 #include "stepper_ipc_data_infra.hpp"
 #include "stepper_motor.hpp"
+#include "stepper_motor_data.hpp"
+#include "test_stepper_motor.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -80,7 +82,11 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
 }
 
 inline StepperMotor *create_stepper() {
-    throw std::runtime_error("create_stepper() not implemented");
+    return new manager_tests::TestStepperMotor(
+        [](const Direction&) {
+            // DOES NOTHING
+        }
+    );
 }
 
 inline void write_raw_data(const RawData& data) {
@@ -92,7 +98,7 @@ inline void write_raw_data(const RawData& data) {
 inline void on_received_cb() {
     while (uart_is_readable(uart0)) {
         if (s_raw_data_buffer.size() >= s_raw_data_buffer.capacity()) {
-            s_raw_data_buffer.reserve(s_raw_data_buffer.capacity() + 100UL);
+            s_raw_data_buffer.reserve(s_raw_data_buffer.capacity() + BUFFER_SIZE_INCREMENT);
         }
         s_raw_data_buffer.push_back(uart_getc(uart0));
     }
