@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <stdexcept>
 #include <string>
 
 #include "pico/stdio.h"
@@ -16,7 +15,7 @@
 #include "stepper_host.hpp"
 #include "stepper_ipc_data_infra.hpp"
 #include "stepper_motor.hpp"
-#include "stepper_motor_data.hpp"
+#include "pico_stepper_motor.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -33,6 +32,7 @@
 #define BUFFER_SIZE_INCREMENT 100UL
 
 using namespace ipc;
+using namespace pico;
 using namespace host;
 using namespace manager;
 
@@ -81,73 +81,7 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-class PicoStepper: public StepperMotor {
-public:
-    PicoStepper(
-        const std::size_t& enable_pin,
-        const std::size_t& step_pin,
-        const std::size_t& dir_pin,
-        const std::size_t& hold_time_ms
-    ): m_enable_pin(enable_pin), m_step_pin(step_pin), m_dir_pin(dir_pin), m_hold_time_ms(hold_time_ms) {
-        init_output(m_enable_pin, false);
-        init_output(m_step_pin, false);
-        init_output(m_dir_pin, false);
-    }
-    ~PicoStepper() noexcept override {
-        set_state(State::DISABLED);
-        gpio_deinit(m_enable_pin);
-        gpio_deinit(m_step_pin);
-        gpio_deinit(m_dir_pin);
-    }
-    void set_state(const State& state) override {
-        switch (state) {
-        case State::ENABLED:
-            gpio_put(m_enable_pin, false);
-            break;
-        case State::DISABLED:
-            gpio_put(m_enable_pin, true);
-            break;
-        default:
-            throw std::invalid_argument("unsupported state received");
-        }
-    }
-    State state() const override {
-        return gpio_get(m_enable_pin) ? State::ENABLED : State::DISABLED;
-    }
-
-    void step(const Direction& direction) override {
-        switch (direction) {
-        case Direction::CCW:
-            gpio_put(m_dir_pin, true);
-            break;
-        case Direction::CW:
-            gpio_put(m_dir_pin, false);
-            break;
-        default:
-            throw std::invalid_argument("unsupported direction");
-        }
-        gpio_put(m_step_pin, true);
-        sleep_ms(m_hold_time_ms);
-        gpio_put(m_step_pin, false);
-    }
-private:
-    const std::size_t m_enable_pin;
-    const std::size_t m_step_pin;
-    const std::size_t m_dir_pin;
-    const std::size_t m_hold_time_ms;
-
-    static void init_output(const std::size_t& pin_num, const bool init_value) {
-        gpio_init(pin_num);
-        gpio_set_dir(pin_num, GPIO_OUT);
-        gpio_put(pin_num, init_value);
-    }
-};
-
 inline StepperMotor *create_stepper() {
-    enum: std::size_t {
-        GPIO_LED_PIN = 25U,
-        GPIO_D
-    };
     return new PicoStepper(
         25U,
         24U,

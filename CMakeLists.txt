@@ -14,6 +14,16 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_library(pico_stepper_motor INTERFACE)
+target_include_directories(pico_stepper_motor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+    pico_stepper_motor
+    INTERFACE
+    stepper_motor
+    stepper_motor_data
+    pico_stdlib
+)
+
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)
 target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(
@@ -26,6 +36,7 @@ target_link_libraries(
     stepper_host
     stepper_ipc_data_infra
     stepper_motor
+    pico_stepper_motor
     
     pico_stdlib
 )
