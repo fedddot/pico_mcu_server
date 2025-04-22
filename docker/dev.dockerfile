@@ -1,7 +1,6 @@
-FROM gcc:9
+FROM mcu-server-dev:latest AS builder
 
 RUN apt update
-RUN apt-get -y install cmake git
 
 # pico-sdk deps
 RUN apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gdb-multiarch
