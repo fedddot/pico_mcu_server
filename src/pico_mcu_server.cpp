@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <memory>
 #include <string>
 
 #include "pico/stdio.h"
@@ -16,6 +17,7 @@
 #include "stepper_ipc_data_infra.hpp"
 #include "stepper_motor.hpp"
 #include "pico_stepper_motor.hpp"
+#include "stepper_motor_manager.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -39,7 +41,7 @@ using namespace manager;
 static auto s_raw_data_buffer = RawData();
 
 static void generate_timeout(const std::size_t& timeout_ms);
-static StepperMotor *create_stepper();
+static StepperMotorManager::Steppers create_steppers();
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
 
@@ -64,7 +66,7 @@ int main(void) {
     auto host = StepperHost(
         raw_data_reader,
         raw_data_writer,
-        create_stepper,
+        create_steppers,
         generate_timeout
     );
     
@@ -81,13 +83,20 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline StepperMotor *create_stepper() {
-    return new PicoStepper(
-        25U,
-        24U,
-        23U,
-        1UL
-    );
+inline StepperMotorManager::Steppers create_steppers() {
+    return StepperMotorManager::Steppers {
+        {
+            "stepper_1",
+            std::shared_ptr<StepperMotor>(
+                new PicoStepper(
+                    25U,
+                    24U,
+                    23U,
+                    1UL
+                )
+            )
+        },
+    };
 }
 
 inline void write_raw_data(const RawData& data) {
