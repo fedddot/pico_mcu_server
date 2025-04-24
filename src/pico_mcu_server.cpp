@@ -89,9 +89,9 @@ inline StepperMotorManager::Steppers create_steppers() {
             "stepper_1",
             std::shared_ptr<StepperMotor>(
                 new PicoStepper(
-                    18U,
-                    19U,
-                    20U,
+                    17U,
+                    16U,
+                    15U,
                     1UL
                 )
             )
@@ -100,9 +100,20 @@ inline StepperMotorManager::Steppers create_steppers() {
             "stepper_2",
             std::shared_ptr<StepperMotor>(
                 new PicoStepper(
-                    23U,
-                    24U,
-                    25U,
+                    11U,
+                    10U,
+                    9U,
+                    1UL
+                )
+            )
+        },
+        {
+            "stepper_3",
+            std::shared_ptr<StepperMotor>(
+                new PicoStepper(
+                    7U,
+                    6U,
+                    5U,
                     1UL
                 )
             )
