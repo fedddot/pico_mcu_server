@@ -33,9 +33,8 @@ target_link_libraries(
     raw_data_package_reader
     raw_data_package_utils
     raw_data_package_writer
-    stepper_host
-    stepper_ipc_data_infra
-    stepper_motor
+    movement_host
+    movement_ipc_data_infra
     pico_stepper_motor
     
     pico_stdlib

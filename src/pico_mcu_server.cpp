@@ -1,7 +1,8 @@
 #include <cstddef>
-#include <memory>
+#include <stdexcept>
 #include <string>
 
+#include "movement_manager_data.hpp"
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "hardware/uart.h"
@@ -13,11 +14,9 @@
 #include "raw_data_package_reader.hpp"
 #include "raw_data_package_utils.hpp"
 #include "raw_data_package_writer.hpp"
-#include "stepper_host.hpp"
-#include "stepper_ipc_data_infra.hpp"
-#include "stepper_motor.hpp"
-#include "pico_stepper_motor.hpp"
-#include "stepper_motor_manager.hpp"
+#include "movement_host.hpp"
+#include "movement_ipc_data_infra.hpp"
+#include "movement_manager.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -34,14 +33,13 @@
 #define BUFFER_SIZE_INCREMENT 100UL
 
 using namespace ipc;
-using namespace pico;
 using namespace host;
 using namespace manager;
 
 static auto s_raw_data_buffer = RawData();
 
 static void generate_timeout(const std::size_t& timeout_ms);
-static StepperMotorManager::Steppers create_steppers();
+static void make_step(const AxisStep& step);
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
 
@@ -63,11 +61,12 @@ int main(void) {
         serialize_package_size,
         write_raw_data
     );
-    auto host = StepperHost(
+    const auto axes_properties = AxesProperties(0.1, 0.1, 0.1);
+    auto host = MovementHost(
         raw_data_reader,
         raw_data_writer,
-        create_steppers,
-        generate_timeout
+        make_step,
+        axes_properties
     );
     
     stdio_init_all();
@@ -83,42 +82,8 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline StepperMotorManager::Steppers create_steppers() {
-    return StepperMotorManager::Steppers {
-        {
-            "stepper_1",
-            std::shared_ptr<StepperMotor>(
-                new PicoStepper(
-                    17U,
-                    16U,
-                    15U,
-                    1UL
-                )
-            )
-        },
-        {
-            "stepper_2",
-            std::shared_ptr<StepperMotor>(
-                new PicoStepper(
-                    11U,
-                    10U,
-                    9U,
-                    1UL
-                )
-            )
-        },
-        {
-            "stepper_3",
-            std::shared_ptr<StepperMotor>(
-                new PicoStepper(
-                    7U,
-                    6U,
-                    5U,
-                    1UL
-                )
-            )
-        },
-    };
+inline void make_step(const AxisStep& step) {
+    throw std::runtime_error("function make_step is not implemented");
 }
 
 inline void write_raw_data(const RawData& data) {
