@@ -24,6 +24,17 @@ target_link_libraries(
     pico_stdlib
 )
 
+add_library(pico_axis_controller INTERFACE)
+target_include_directories(pico_axis_controller INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+    pico_axis_controller
+    INTERFACE
+    movement_data
+
+    pico_stepper_motor
+    pico_stdlib
+)
+
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)
 target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(

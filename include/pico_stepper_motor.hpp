@@ -22,7 +22,7 @@ namespace pico {
         ~PicoStepper() noexcept override;
         void set_state(const manager::State& state) override;
         manager::State state() const override;    
-        void step(const manager::Direction& direction) override;
+        void step(const manager::RotationDirection& direction) override;
     private:
         const std::size_t m_enable_pin;
         const std::size_t m_step_pin;
@@ -67,12 +67,12 @@ namespace pico {
         return gpio_get(m_enable_pin) ? manager::State::ENABLED : manager::State::DISABLED;
     }
 
-    inline void PicoStepper::step(const manager::Direction& direction) {
+    inline void PicoStepper::step(const manager::RotationDirection& direction) {
         switch (direction) {
-        case manager::Direction::CCW:
+        case manager::RotationDirection::CCW:
             gpio_put(m_dir_pin, true);
             break;
-        case manager::Direction::CW:
+        case manager::RotationDirection::CW:
             gpio_put(m_dir_pin, false);
             break;
         default:
