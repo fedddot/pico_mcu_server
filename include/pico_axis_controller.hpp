@@ -42,7 +42,8 @@ namespace pico {
         const manager::AxesProperties& axes_properties,
         const Steppers& steppers
     ): m_axes_properties(axes_properties), m_steppers(steppers) {
-        for (const auto& axis: {manager::Axis::X, manager::Axis::Y, manager::Axis::Z}) {
+        using namespace manager;
+        for (const auto& axis: {Axis::X, Axis::Y, Axis::Z}) {
             const auto iter = m_steppers.find(axis);
             if (m_steppers.end() == iter) {
                 throw std::invalid_argument("stepper is not assigned for one of axes");
@@ -50,7 +51,7 @@ namespace pico {
             if (!(iter->second).stepper_ptr) {
                 throw std::invalid_argument("invalid stepper ptr received");
             }
-            for (const auto& direction: {manager::Direction::NEGATIVE, manager::Direction::POSITIVE}) {
+            for (const auto& direction: {Direction::NEGATIVE, Direction::POSITIVE}) {
                 const auto dir_iter = (iter->second).directions.find(direction);
                 if ((iter->second).directions.end() == dir_iter) {
                     throw std::invalid_argument("correspondence is not established for one of directions");
@@ -65,7 +66,7 @@ namespace pico {
     }
 
     inline void PicoAxisController::step(const manager::AxisStep& step) {
-
+        throw std::runtime_error("PicoAxisController::step not implemented");
     }
 
     inline void PicoAxisController::enable() {
