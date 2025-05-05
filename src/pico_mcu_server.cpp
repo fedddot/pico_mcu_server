@@ -16,7 +16,7 @@
 #include "raw_data_package_writer.hpp"
 #include "movement_host.hpp"
 #include "movement_ipc_data_infra.hpp"
-#include "movement_manager.hpp"
+#include "pico_axis_controller.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -39,7 +39,7 @@ using namespace manager;
 static auto s_raw_data_buffer = RawData();
 
 static void generate_timeout(const std::size_t& timeout_ms);
-static void make_step(const AxisStep& step);
+static pico::PicoAxisController::Steppers create_steppers();
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
 
@@ -62,10 +62,15 @@ int main(void) {
         write_raw_data
     );
     const auto axes_properties = AxesProperties(0.1, 0.1, 0.1);
+    const auto steppers = create_steppers();
+    const auto axes_ctrlr = pico::PicoAxisController(
+        axes_properties,
+        steppers
+    );
     auto host = MovementHost(
         raw_data_reader,
         raw_data_writer,
-        make_step,
+        axes_ctrlr,
         axes_properties
     );
     
@@ -82,7 +87,7 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline void make_step(const AxisStep& step) {
+inline pico::PicoAxisController::Steppers create_steppers() {
     throw std::runtime_error("function make_step is not implemented");
 }
 

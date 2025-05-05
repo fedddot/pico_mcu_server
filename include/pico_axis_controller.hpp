@@ -13,7 +13,11 @@
 namespace pico {
     class PicoAxisController: public manager::MovementManager::AxesController {
     public:
-        using Steppers = std::map<manager::Axis, std::shared_ptr<manager::StepperMotor>>;
+        struct StepperMotorDescriptor {
+            std::shared_ptr<manager::StepperMotor> stepper_ptr;
+            std::map<manager::Direction, manager::RotationDirection> directions;
+        };
+        using Steppers = std::map<manager::Axis, StepperMotorDescriptor>;
         PicoAxisController(
             const manager::AxesProperties& axes_properties,
             const Steppers& steppers
@@ -43,10 +47,15 @@ namespace pico {
             if (m_steppers.end() == iter) {
                 throw std::invalid_argument("stepper is not assigned for one of axes");
             }
-            auto stepper_ptr = (iter->second).get();
-            if (!stepper_ptr) {
+            if (!(iter->second).stepper_ptr) {
                 throw std::invalid_argument("invalid stepper ptr received");
             }
+            for (const auto& direction: {manager::Direction::NEGATIVE, manager::Direction::POSITIVE}) {
+                const auto dir_iter = (iter->second).directions.find(direction);
+                if ((iter->second).directions.end() == dir_iter) {
+                    throw std::invalid_argument("correspondence is not established for one of directions");
+                }
+            }            
         }
         disable_steppers(m_steppers);
     }
@@ -68,13 +77,13 @@ namespace pico {
     }
 
     inline void PicoAxisController::disable_steppers(const Steppers& steppers) {
-        for (const auto& [axis, stepper_ptr]: steppers) {
-            stepper_ptr->set_state(manager::State::DISABLED);
+        for (const auto& [axis, stepper_dsc]: steppers) {
+            stepper_dsc.stepper_ptr->set_state(manager::State::DISABLED);
         }
     }
     inline void PicoAxisController::enable_steppers(const Steppers& steppers) {
-        for (const auto& [axis, stepper_ptr]: steppers) {
-            stepper_ptr->set_state(manager::State::ENABLED);
+        for (const auto& [axis, stepper_dsc]: steppers) {
+            stepper_dsc.stepper_ptr->set_state(manager::State::ENABLED);
         }
     }
 }
