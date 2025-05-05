@@ -1,5 +1,6 @@
 #include <cstddef>
-#include <stdexcept>
+#include <map>
+#include <memory>
 #include <string>
 
 #include "movement_manager_data.hpp"
@@ -10,6 +11,7 @@
 #include "hardware/regs/intctrl.h"
 #include "hardware/gpio.h"
 
+#include "pico_stepper_motor.hpp"
 #include "raw_data_package_descriptor.hpp"
 #include "raw_data_package_reader.hpp"
 #include "raw_data_package_utils.hpp"
@@ -17,6 +19,8 @@
 #include "movement_host.hpp"
 #include "movement_ipc_data_infra.hpp"
 #include "pico_axis_controller.hpp"
+#include "stepper_motor.hpp"
+#include "stepper_motor_data.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -35,11 +39,12 @@
 using namespace ipc;
 using namespace host;
 using namespace manager;
+using namespace pico;
 
 static auto s_raw_data_buffer = RawData();
 
 static void generate_timeout(const std::size_t& timeout_ms);
-static pico::PicoAxisController::Steppers create_steppers();
+static PicoAxisController::Steppers create_steppers();
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
 
@@ -63,7 +68,7 @@ int main(void) {
     );
     const auto axes_properties = AxesProperties(0.1, 0.1, 0.1);
     const auto steppers = create_steppers();
-    const auto axes_ctrlr = pico::PicoAxisController(
+    const auto axes_ctrlr = PicoAxisController(
         axes_properties,
         steppers
     );
@@ -87,8 +92,55 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline pico::PicoAxisController::Steppers create_steppers() {
-    throw std::runtime_error("function make_step is not implemented");
+inline PicoAxisController::Steppers create_steppers() {
+    const auto directions = std::map<Direction, RotationDirection> {
+        {Direction::NEGATIVE, RotationDirection::CCW},
+        {Direction::POSITIVE, RotationDirection::CW},
+    };
+    return PicoAxisController::Steppers {
+        {
+            Axis::X,
+            PicoAxisController::StepperMotorDescriptor {
+                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                    new  PicoStepper(
+                        17UL,
+                        16UL,
+                        15UL,
+                        1UL
+                    )
+                ),
+                .directions = directions,
+            }
+        },
+        {
+            Axis::Y,
+            PicoAxisController::StepperMotorDescriptor {
+                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                    new  PicoStepper(
+                        12UL,
+                        11UL,
+                        10UL,
+                        1UL
+                    )
+                ),
+                .directions = directions,
+            }
+        },
+        {
+            Axis::Z,
+            PicoAxisController::StepperMotorDescriptor {
+                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                    new  PicoStepper(
+                        8UL,
+                        7UL,
+                        6UL,
+                        1UL
+                    )
+                ),
+                .directions = directions,
+            }
+        },
+    };
 }
 
 inline void write_raw_data(const RawData& data) {

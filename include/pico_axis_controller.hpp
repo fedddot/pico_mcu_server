@@ -4,6 +4,8 @@
 #include <memory>
 #include <stdexcept>
 
+#include "pico/time.h"
+
 #include "movement_manager.hpp"
 #include "movement_manager_data.hpp"
 
@@ -66,7 +68,12 @@ namespace pico {
     }
 
     inline void PicoAxisController::step(const manager::AxisStep& step) {
-        throw std::runtime_error("PicoAxisController::step not implemented");
+        const auto& descriptor = m_steppers.at(step.axis);
+        const auto rotational_dir = descriptor.directions.at(step.direction);
+        const auto duration_ms = static_cast<uint32_t>(1000.0 * step.duration);
+
+        descriptor.stepper_ptr->step(rotational_dir);
+        sleep_ms(duration_ms);
     }
 
     inline void PicoAxisController::enable() {
@@ -75,6 +82,10 @@ namespace pico {
 
     inline void PicoAxisController::disable() {
         disable_steppers(m_steppers);
+    }
+
+    inline manager::MovementManager::AxesController *PicoAxisController::clone() const {
+        return new PicoAxisController(*this);
     }
 
     inline void PicoAxisController::disable_steppers(const Steppers& steppers) {
