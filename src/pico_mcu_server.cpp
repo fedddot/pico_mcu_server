@@ -97,6 +97,8 @@ inline PicoAxisController::Steppers create_steppers() {
         {Direction::NEGATIVE, RotationDirection::CCW},
         {Direction::POSITIVE, RotationDirection::CW},
     };
+    const auto mode = PicoStepper::Mode::FULL_STEP;
+    const auto hold_time_ms = 1UL;
     return PicoAxisController::Steppers {
         {
             Axis::X,
@@ -106,7 +108,11 @@ inline PicoAxisController::Steppers create_steppers() {
                         17UL,
                         16UL,
                         15UL,
-                        1UL
+                        14UL,
+                        13UL,
+                        12UL,
+                        mode,
+                        hold_time_ms
                     )
                 ),
                 .directions = directions,
@@ -117,10 +123,14 @@ inline PicoAxisController::Steppers create_steppers() {
             PicoAxisController::StepperMotorDescriptor {
                 .stepper_ptr = std::shared_ptr<StepperMotor>(
                     new  PicoStepper(
-                        12UL,
                         11UL,
                         10UL,
-                        1UL
+                        9UL,
+                        8UL,
+                        7UL,
+                        6UL,
+                        mode,
+                        hold_time_ms
                     )
                 ),
                 .directions = directions,
@@ -134,7 +144,11 @@ inline PicoAxisController::Steppers create_steppers() {
                         8UL,
                         7UL,
                         6UL,
-                        1UL
+                        14UL,
+                        13UL,
+                        12UL,
+                        mode,
+                        hold_time_ms
                     )
                 ),
                 .directions = directions,
