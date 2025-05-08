@@ -141,12 +141,12 @@ inline PicoAxisController::Steppers create_steppers() {
             PicoAxisController::StepperMotorDescriptor {
                 .stepper_ptr = std::shared_ptr<StepperMotor>(
                     new  PicoStepper(
-                        8UL,
-                        7UL,
-                        6UL,
-                        14UL,
-                        13UL,
-                        12UL,
+                        18UL,
+                        19UL,
+                        20UL,
+                        21UL,
+                        22UL,
+                        23UL,
                         mode,
                         hold_time_ms
                     )
