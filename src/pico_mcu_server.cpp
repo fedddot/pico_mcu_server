@@ -66,7 +66,11 @@ int main(void) {
         serialize_package_size,
         write_raw_data
     );
-    const auto axes_properties = AxesProperties(0.1, 0.1, 0.1);
+    const auto axes_properties = AxesProperties(
+        0.1 / 4.0,
+        0.1 / 4.0,
+        0.1 / 4.0
+    );
     const auto steppers = create_steppers();
     const auto axes_ctrlr = PicoAxisController(
         axes_properties,
@@ -97,8 +101,7 @@ inline PicoAxisController::Steppers create_steppers() {
         {Direction::NEGATIVE, RotationDirection::CCW},
         {Direction::POSITIVE, RotationDirection::CW},
     };
-    const auto mode = PicoStepper::Mode::FULL_STEP;
-    const auto hold_time_ms = 1UL;
+    const auto hold_time_us = 50UL;
     return PicoAxisController::Steppers {
         {
             Axis::X,
@@ -108,11 +111,7 @@ inline PicoAxisController::Steppers create_steppers() {
                         17UL,
                         16UL,
                         15UL,
-                        14UL,
-                        13UL,
-                        12UL,
-                        mode,
-                        hold_time_ms
+                        hold_time_us
                     )
                 ),
                 .directions = directions,
@@ -123,14 +122,10 @@ inline PicoAxisController::Steppers create_steppers() {
             PicoAxisController::StepperMotorDescriptor {
                 .stepper_ptr = std::shared_ptr<StepperMotor>(
                     new  PicoStepper(
-                        11UL,
-                        10UL,
-                        9UL,
                         8UL,
                         7UL,
                         6UL,
-                        mode,
-                        hold_time_ms
+                        hold_time_us
                     )
                 ),
                 .directions = directions,
@@ -141,14 +136,10 @@ inline PicoAxisController::Steppers create_steppers() {
             PicoAxisController::StepperMotorDescriptor {
                 .stepper_ptr = std::shared_ptr<StepperMotor>(
                     new  PicoStepper(
-                        18UL,
-                        19UL,
-                        20UL,
-                        21UL,
-                        22UL,
-                        23UL,
-                        mode,
-                        hold_time_ms
+                        4UL,
+                        3UL,
+                        2UL,
+                        hold_time_us
                     )
                 ),
                 .directions = directions,
