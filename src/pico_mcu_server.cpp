@@ -1,9 +1,9 @@
 #include <cstddef>
 #include <map>
-#include <memory>
 #include <string>
 
-#include "movement_manager_data.hpp"
+#include "json/value.h"
+
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "hardware/uart.h"
@@ -11,14 +11,17 @@
 #include "hardware/regs/intctrl.h"
 #include "hardware/gpio.h"
 
+#include "axes_controller.hpp"
+#include "ipc_instance.hpp"
+#include "manager_instance.hpp"
+#include "movement_host_builder.hpp"
+#include "movement_manager_data.hpp"
+#include "pico_axis_controller.hpp"
 #include "pico_stepper_motor.hpp"
 #include "raw_data_package_descriptor.hpp"
 #include "raw_data_package_reader.hpp"
 #include "raw_data_package_utils.hpp"
 #include "raw_data_package_writer.hpp"
-#include "movement_host.hpp"
-#include "movement_ipc_data_infra.hpp"
-#include "pico_axis_controller.hpp"
 #include "stepper_motor.hpp"
 #include "stepper_motor_data.hpp"
 
@@ -41,12 +44,16 @@ using namespace host;
 using namespace manager;
 using namespace pico;
 
+using AxisControllerConfig = Json::Value;
+
 static auto s_raw_data_buffer = RawData();
 
 static void generate_timeout(const std::size_t& timeout_ms);
-static PicoAxisController::Steppers create_steppers();
+static manager::Instance<AxesController> create_axes_controller(const AxisControllerConfig& config);
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
+static Json::Value cfg2json(const AxisControllerConfig& cfg);
+static AxisControllerConfig json2cfg(const Json::Value& cfg);
 
 int main(void) {
     s_raw_data_buffer.reserve(BUFFER_SIZE_INCREMENT);
@@ -56,38 +63,42 @@ int main(void) {
         RawData(preamble_str.begin(), preamble_str.end()),
         MSG_SIZE_FIELD_LEN
     );
-    const auto raw_data_reader = RawDataPackageReader(
-        &s_raw_data_buffer,
-        package_descriptor,
-        parse_package_size
+    auto host_builder = MovementHostBuilder<AxisControllerConfig>();
+	host_builder.set_axes_properties(
+        AxesProperties(
+            0.1 / 4.0,
+            0.1 / 4.0,
+            0.1 / 4.0
+        )
     );
-    const auto raw_data_writer = RawDataPackageWriter(
-        package_descriptor,
-        serialize_package_size,
-        write_raw_data
-    );
-    const auto axes_properties = AxesProperties(
-        0.1 / 4.0,
-        0.1 / 4.0,
-        0.1 / 4.0
-    );
-    const auto steppers = create_steppers();
-    const auto axes_ctrlr = PicoAxisController(
-        axes_properties,
-        steppers
-    );
-    auto host = MovementHost(
-        raw_data_reader,
-        raw_data_writer,
-        axes_ctrlr,
-        axes_properties
-    );
+	host_builder.set_axes_controller_ctor(create_axes_controller);
+	host_builder.set_raw_data_writer(
+		ipc::Instance<IpcDataWriter<RawData>>(
+			new RawDataPackageWriter(
+                package_descriptor,
+                serialize_package_size,
+                write_raw_data
+            )
+		)
+	);
+	host_builder.set_raw_data_reader(
+		ipc::Instance<IpcDataReader<RawData>>(
+			new RawDataPackageReader(
+                &s_raw_data_buffer,
+                package_descriptor,
+                parse_package_size
+            )
+		)
+	);
+	host_builder.set_json_cfg_to_ctrlr(json2cfg);
+	host_builder.set_ctrlr_cfg_to_json(cfg2json);
+    auto host_instance = host_builder.build();
     
     stdio_init_all();
     init_uart_listener();
 
     while (true) {
-        host.run_once();
+        host_instance.get().run_once();
     }
     return 0;
 }
@@ -96,17 +107,17 @@ inline void generate_timeout(const std::size_t& timeout_ms) {
     sleep_ms(timeout_ms);
 }
 
-inline PicoAxisController::Steppers create_steppers() {
+inline manager::Instance<AxesController> create_axes_controller(const AxisControllerConfig& config) {
     const auto directions = std::map<Direction, RotationDirection> {
         {Direction::NEGATIVE, RotationDirection::CCW},
         {Direction::POSITIVE, RotationDirection::CW},
     };
-    const auto hold_time_us = 50UL;
-    return PicoAxisController::Steppers {
+    const auto hold_time_us = 100UL;
+    const auto steppers = PicoAxisController::Steppers {
         {
             Axis::X,
             PicoAxisController::StepperMotorDescriptor {
-                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                .stepper = manager::Instance<StepperMotor>(
                     new  PicoStepper(
                         17UL,
                         16UL,
@@ -120,7 +131,7 @@ inline PicoAxisController::Steppers create_steppers() {
         {
             Axis::Y,
             PicoAxisController::StepperMotorDescriptor {
-                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                .stepper = manager::Instance<StepperMotor>(
                     new  PicoStepper(
                         12UL,
                         11UL,
@@ -134,7 +145,7 @@ inline PicoAxisController::Steppers create_steppers() {
         {
             Axis::Z,
             PicoAxisController::StepperMotorDescriptor {
-                .stepper_ptr = std::shared_ptr<StepperMotor>(
+                .stepper = manager::Instance<StepperMotor>(
                     new  PicoStepper(
                         8UL,
                         7UL,
@@ -146,6 +157,12 @@ inline PicoAxisController::Steppers create_steppers() {
             }
         },
     };
+    return manager::Instance<AxesController>(
+        new PicoAxisController(
+            AxesProperties(0.1, 0.1, 0.1),
+            steppers
+        )
+    );
 }
 
 inline void write_raw_data(const RawData& data) {
@@ -181,4 +198,12 @@ inline void init_uart_listener() {
     irq_set_exclusive_handler(UART0_IRQ, &on_received_cb);
     irq_set_enabled(UART0_IRQ, true);
     uart_set_irq_enables(uart0, true, false);
+}
+
+inline Json::Value cfg2json(const AxisControllerConfig& cfg) {
+	return Json::Value(cfg);
+}
+
+inline AxisControllerConfig json2cfg(const Json::Value& cfg) {
+	return cfg.asString();
 }

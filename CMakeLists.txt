@@ -40,14 +40,21 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
+    axes_controller
+    ipc_instance
+    manager_instance
+    movement_host_builder
+    movement_manager_data
+    pico_axis_controller
+    pico_stepper_motor
     raw_data_package_descriptor
     raw_data_package_reader
     raw_data_package_utils
     raw_data_package_writer
-    movement_host
-    movement_ipc_data_infra
-    pico_stepper_motor
+    stepper_motor
+    stepper_motor_data
     
+    jsoncpp_static
     pico_stdlib
 )
 target_compile_definitions(

@@ -1,22 +1,22 @@
 #ifndef	PICO_AXIS_CONTROLLER_HPP
 #define	PICO_AXIS_CONTROLLER_HPP
 
-#include <memory>
 #include <stdexcept>
 
+#include "axes_controller.hpp"
+#include "manager_instance.hpp"
 #include "pico/time.h"
 
-#include "movement_manager.hpp"
 #include "movement_manager_data.hpp"
 
 #include "stepper_motor.hpp"
 #include "stepper_motor_data.hpp"
 
 namespace pico {
-    class PicoAxisController: public manager::MovementManager::AxesController {
+    class PicoAxisController: public manager::AxesController {
     public:
         struct StepperMotorDescriptor {
-            std::shared_ptr<manager::StepperMotor> stepper_ptr;
+            manager::Instance<manager::StepperMotor> stepper;
             std::map<manager::Direction, manager::RotationDirection> directions;
         };
         using Steppers = std::map<manager::Axis, StepperMotorDescriptor>;
@@ -36,8 +36,8 @@ namespace pico {
         manager::AxesProperties m_axes_properties;
         Steppers m_steppers;
 
-        static void disable_steppers(const Steppers& steppers);
-        static void enable_steppers(const Steppers& steppers);
+        static void disable_steppers(Steppers *steppers);
+        static void enable_steppers(Steppers *steppers);
     };
 
     inline PicoAxisController::PicoAxisController(
@@ -50,9 +50,6 @@ namespace pico {
             if (m_steppers.end() == iter) {
                 throw std::invalid_argument("stepper is not assigned for one of axes");
             }
-            if (!(iter->second).stepper_ptr) {
-                throw std::invalid_argument("invalid stepper ptr received");
-            }
             for (const auto& direction: {Direction::NEGATIVE, Direction::POSITIVE}) {
                 const auto dir_iter = (iter->second).directions.find(direction);
                 if ((iter->second).directions.end() == dir_iter) {
@@ -60,42 +57,42 @@ namespace pico {
                 }
             }            
         }
-        disable_steppers(m_steppers);
+        disable_steppers(&m_steppers);
     }
 
     inline PicoAxisController::~PicoAxisController() noexcept {
-        disable_steppers(m_steppers);
+        disable_steppers(&m_steppers);
     }
 
     inline void PicoAxisController::step(const manager::AxisStep& step) {
-        const auto& descriptor = m_steppers.at(step.axis);
+        auto& descriptor = m_steppers.at(step.axis);
         const auto rotational_dir = descriptor.directions.at(step.direction);
         const auto duration_ms = static_cast<uint32_t>(1000.0 * step.duration);
 
-        descriptor.stepper_ptr->step(rotational_dir);
+        descriptor.stepper.get().step(rotational_dir);
         sleep_ms(duration_ms);
     }
 
     inline void PicoAxisController::enable() {
-        enable_steppers(m_steppers);
+        enable_steppers(&m_steppers);
     }
 
     inline void PicoAxisController::disable() {
-        disable_steppers(m_steppers);
+        disable_steppers(&m_steppers);
     }
 
-    inline manager::MovementManager::AxesController *PicoAxisController::clone() const {
+    inline manager::AxesController *PicoAxisController::clone() const {
         return new PicoAxisController(*this);
     }
 
-    inline void PicoAxisController::disable_steppers(const Steppers& steppers) {
-        for (const auto& [axis, stepper_dsc]: steppers) {
-            stepper_dsc.stepper_ptr->set_state(manager::State::DISABLED);
+    inline void PicoAxisController::disable_steppers(Steppers *steppers) {
+        for (auto& [axis, stepper_dsc]: *steppers) {
+            stepper_dsc.stepper.get().set_state(manager::State::DISABLED);
         }
     }
-    inline void PicoAxisController::enable_steppers(const Steppers& steppers) {
-        for (const auto& [axis, stepper_dsc]: steppers) {
-            stepper_dsc.stepper_ptr->set_state(manager::State::ENABLED);
+    inline void PicoAxisController::enable_steppers(Steppers *steppers) {
+        for (auto& [axis, stepper_dsc]: *steppers) {
+            stepper_dsc.stepper.get().set_state(manager::State::ENABLED);
         }
     }
 }

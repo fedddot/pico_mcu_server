@@ -86,6 +86,7 @@ namespace pico {
         gpio_put(m_step_pin, true);
         sleep_us(m_hold_time_us);
         gpio_put(m_step_pin, false);
+        sleep_us(m_hold_time_us);
     }
 
     inline void PicoStepper::init_output(const std::size_t& pin_num, const bool init_value) {
