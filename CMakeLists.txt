@@ -29,8 +29,6 @@ target_include_directories(pico_axis_controller INTERFACE ${CMAKE_CURRENT_LIST_D
 target_link_libraries(
     pico_axis_controller
     INTERFACE
-    movement_data
-
     pico_stepper_motor
     pico_stdlib
 )
