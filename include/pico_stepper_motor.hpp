@@ -22,8 +22,7 @@ namespace pico {
             const std::size_t& enable_pin,
             const std::size_t& step_pin,
             const std::size_t& dir_pin,
-            const std::size_t& hold_time_us,
-            const double step_length
+            const std::size_t& hold_time_us
         );
         PicoStepper(const PicoStepper&) = delete;
         PicoStepper& operator=(const PicoStepper&) = delete;
@@ -32,13 +31,11 @@ namespace pico {
         void set_state(const State& state);
         State state() const;    
         void step(const Direction& direction);
-        double step_length() const;
     private:
         const std::size_t m_enable_pin;
         const std::size_t m_step_pin;
         const std::size_t m_dir_pin;
         const std::size_t m_hold_time_us;
-        const double m_step_length;
     
         static void init_output(const std::size_t& pin_num, const bool init_value);
     };
@@ -47,15 +44,10 @@ namespace pico {
         const std::size_t& enable_pin,
         const std::size_t& step_pin,
         const std::size_t& dir_pin,
-        const std::size_t& hold_time_us,
-        const double step_length
+        const std::size_t& hold_time_us
     ): m_enable_pin(enable_pin),
         m_step_pin(step_pin), m_dir_pin(dir_pin),
-        m_hold_time_us(hold_time_us),
-        m_step_length(step_length) {
-        if (m_step_length <= 0.0) {
-            throw std::invalid_argument("step length must be greater than zero");
-        }
+        m_hold_time_us(hold_time_us) {
         init_output(m_enable_pin, true); // en pin has inverse logic
         init_output(m_step_pin, false);
         init_output(m_dir_pin, false);
@@ -106,10 +98,6 @@ namespace pico {
         gpio_init(pin_num);
         gpio_set_dir(pin_num, GPIO_OUT);
         gpio_put(pin_num, init_value);
-    }
-
-    inline double PicoStepper::step_length() const {
-        return m_step_length;
     }
 }
 
