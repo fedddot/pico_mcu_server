@@ -10,28 +10,27 @@ namespace pico {
     struct AxisConfig {
         using DirectionsMapping = std::map<manager::Direction, PicoStepper::Direction>;
         AxisConfig(
-            const std::size_t& enable_pin,
-            const std::size_t& step_pin,
-            const std::size_t& dir_pin,
-            const std::size_t& hold_time_us = 10,
+            const PicoStepper::Config& stepper_config,
             const double step_length = 0.1,
             const DirectionsMapping& directions_mapping = DirectionsMapping {
                 {manager::Direction::NEGATIVE, PicoStepper::Direction::CCW},
-                {manager::Direction::POSITIVE, PicoStepper::Direction::CW}
+                {manager::Direction::POSITIVE, PicoStepper::Direction::CW},
             }
         );
         AxisConfig(const AxisConfig&) = default;
         AxisConfig& operator=(const AxisConfig&) = default;
         virtual ~AxisConfig() noexcept = default;
         
+        PicoStepper::Config stepper_config;
         double step_length;
         DirectionsMapping directions_mapping;
     };
 
     inline AxisConfig::AxisConfig(
+        const PicoStepper::Config& stepper_config,
         const double step_length,
         const DirectionsMapping& directions_mapping
-    ): step_length(step_length), directions_mapping(directions_mapping) {
+    ): stepper_config(stepper_config), step_length(step_length), directions_mapping(directions_mapping) {
         if (step_length <= 0.0) {
             throw std::invalid_argument("step_length must be positive");
         }
