@@ -1,7 +1,9 @@
 #include "json/reader.h"
+#include "json/value.h"
 #include <string>
 
 #include "json/writer.h"
+#include "axis_config.hpp"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
@@ -81,48 +83,71 @@ inline manager::Instance<AxesController> create_axes_controller(const PicoAxesCo
     );
 }
 
-inline double retrieve_double(const Json::Value& json_val, const std::string& key) {
+inline Json::Value retrieve_val_from_object(const Json::Value& json_val, const std::string& key) {
     if (!json_val.isMember(key)) {
         throw std::invalid_argument("missing " + key + " key in json data");
     }
-    const auto val = json_val[key];
-    if (!val.isDouble()) {
-        throw std::invalid_argument(key + " key in json data is not a double");
-    }
-    return val.asDouble();
-}
-
-inline int retrieve_int(const Json::Value& json_val, const std::string& key) {
-    if (!json_val.isMember(key)) {
-        throw std::invalid_argument("missing " + key + " key in json data");
-    }
-    const auto val = json_val[key];
-    if (!val.isInt()) {
-        throw std::invalid_argument(key + " key in json data is not an integer");
-    }
-    return val.asInt();
+    return json_val[key];
 }
 
 inline typename PicoStepper::Config parse_stepper_cfg(const Json::Value& json_data) {
     return PicoStepper::Config {
-        .enable_pin = static_cast<size_t>(retrieve_int(json_data, "enable_pin")),
-        .step_pin = static_cast<size_t>(retrieve_int(json_data, "step_pin")),
-        .dir_pin = static_cast<size_t>(retrieve_int(json_data, "dir_pin")),
-        .hold_time_us = static_cast<size_t>(retrieve_int(json_data, "hold_time_us")),
+        .enable_pin = retrieve_val_from_object(json_data, "enable_pin").asUInt(),
+        .step_pin = retrieve_val_from_object(json_data, "step_pin").asUInt(),
+        .dir_pin = retrieve_val_from_object(json_data, "dir_pin").asUInt(),
+        .hold_time_us = retrieve_val_from_object(json_data, "hold_time_us").asUInt(),
     };
 }
 
-inline ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data) {
-    const auto json_parser = MovementJsonApiRequestParser<PicoAxesControllerConfig>(
-        [](const Json::Value& json_data) -> PicoAxesControllerConfig {
-
-            return PicoAxesControllerConfig()
-                retrieve_double(json_data, "x_step_length"),
-                retrieve_double(json_data, "y_step_length"),
-                retrieve_double(json_data, "z_step_length")
-            );
+inline typename AxisConfig::DirectionsMapping parse_directions_mapping(const Json::Value& json_data) {
+    const auto linear_directions = std::map<std::string, manager::Direction> {
+        {"NEGATIVE", manager::Direction::NEGATIVE},
+        {"POSITIVE", manager::Direction::POSITIVE},
+    };
+    const auto rotational_directions = std::map<std::string, PicoStepper::Direction> {
+        {"CCW", PicoStepper::Direction::CCW},
+        {"CW", PicoStepper::Direction::CW},
+    };
+    AxisConfig::DirectionsMapping directions_mapping;
+    for (const auto& [linear_direction_str, linear_direction]: linear_directions) {
+        if (!json_data.isMember(linear_direction_str)) {
+            throw std::invalid_argument("missing " + linear_direction_str + " key in json data");
         }
-    );
+        const auto rotational_direction_str = json_data[linear_direction_str].asString();
+        if (rotational_directions.find(rotational_direction_str) == rotational_directions.end()) {
+            throw std::invalid_argument("invalid rotational direction: " + rotational_direction_str);
+        }
+        directions_mapping[linear_direction] = rotational_directions.at(rotational_direction_str);
+    }
+    return directions_mapping;
+}
+
+inline AxisConfig parse_axis_cfg(const Json::Value& json_data) {
+    const auto stepper_cfg_json = retrieve_val_from_object(json_data, "stepper_cfg");
+    const auto stepper_cfg = parse_stepper_cfg(stepper_cfg_json);
+
+    const auto step_length = retrieve_val_from_object(json_data, "step_length").asDouble();
+    const auto directions_mapping_json = retrieve_val_from_object(json_data, "directions_mapping");
+    const auto directions_mapping = parse_directions_mapping(directions_mapping_json);
+    return AxisConfig(stepper_cfg, step_length, directions_mapping);
+}
+
+inline PicoAxesControllerConfig parse_axes_controller_cfg(const Json::Value& json_data) {
+    const auto axes_mapping = std::map<std::string, manager::Axis> {
+        {"x", manager::Axis::X},
+        {"y", manager::Axis::Y},
+        {"z", manager::Axis::Z},
+    };
+    PicoAxesControllerConfig::AxesConfig axes_config;
+    for (const auto& [axis_str, axis]: axes_mapping) {
+        const auto axis_cfg_json = retrieve_val_from_object(json_data, axis_str);
+        axes_config[axis] = parse_axis_cfg(axis_cfg_json);
+    }
+    return PicoAxesControllerConfig(axes_config);
+}
+
+inline ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data) {
+    const auto json_parser = MovementJsonApiRequestParser<PicoAxesControllerConfig>(parse_axes_controller_cfg);
     Json::Value json_val;
     Json::Reader reader;
     if (!reader.parse(std::string(raw_data.begin(), raw_data.end()), std::ref(json_val), true)) {
