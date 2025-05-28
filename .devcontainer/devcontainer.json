@@ -18,7 +18,18 @@
 			],
 			"settings": {
 				"clangd.path": "/usr/lib/llvm-18/bin/clangd",
-				"clangd.arguments": ["--query-driver=/usr/bin/arm-none-eabi-g++,/usr/bin/arm-none-eabi-gcc"]
+				"clangd.arguments": ["--query-driver=/usr/bin/arm-none-eabi-g++,/usr/bin/arm-none-eabi-gcc"],
+				"cmake.debugConfig": {
+					"type": "cppdbg",
+					"request": "launch",
+					"name": "CMake Debug (Remote GDB)",
+					"MIMode": "gdb",
+					"miDebuggerServerAddress": "localhost:3333",
+					"miDebuggerPath": "/usr/bin/gdb-multiarch",
+					"program": "${command:cmake.launchTargetPath}",
+					"cwd": "${workspaceFolder}",
+					"stopAtEntry": true
+				}
 			}
 		}
 	},
