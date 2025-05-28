@@ -35,20 +35,17 @@ target_link_libraries(
 
 add_library(pico_stepper_motor INTERFACE)
 target_include_directories(pico_stepper_motor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
-target_link_libraries(
-    pico_stepper_motor
-    INTERFACE
-    stepper_motor
-    stepper_motor_data
-    pico_axis_controller_config
-    pico_stdlib
-)
+target_link_libraries(pico_stepper_motor INTERFACE pico_stdlib)
 
 add_library(pico_axis_controller INTERFACE)
 target_include_directories(pico_axis_controller INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(
     pico_axis_controller
     INTERFACE
+    axes_controller
+    manager_instance
+    movement_manager_data
+    pico_axis_controller_config
     pico_stepper_motor
     pico_stdlib
 )
