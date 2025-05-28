@@ -1,27 +1,31 @@
-#include "json/reader.h"
-#include "json/value.h"
 #include <string>
 
+#include "json/reader.h"
+#include "json/value.h"
 #include "json/writer.h"
-#include "axis_config.hpp"
+
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
 #include "hardware/uart.h"
 #include "pico/stdio.h"
 
+#include "axis_config.hpp"
 #include "ipc_data.hpp"
 #include "ipc_instance.hpp"
 #include "manager_instance.hpp"
 #include "movement_host_builder.hpp"
+#include "movement_json_api_request_parser.hpp"
+#include "movement_json_api_response_serializer.hpp"
 #include "movement_vendor_api_request.hpp"
 #include "movement_vendor_api_response.hpp"
 #include "pico_axis_controller.hpp"
 #include "pico_axis_controller_config.hpp"
 #include "pico_stepper_motor.hpp"
 #include "raw_data_package_descriptor.hpp"
-#include "movement_json_api_response_serializer.hpp"
-#include "movement_json_api_request_parser.hpp"
+#include "raw_data_package_reader.hpp"
+#include "raw_data_package_utils.hpp"
+#include "raw_data_package_writer.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -60,10 +64,27 @@ int main(void) {
         RawData(preamble_str.begin(), preamble_str.end()),
         MSG_SIZE_FIELD_LEN
     );
+    const auto raw_data_reader_instance = MovementHostBuilder<PicoAxesControllerConfig, RawData>::RawDataReaderInstance(
+        new RawDataPackageReader(
+            &s_raw_data_buffer,
+            package_descriptor,
+            parse_package_size
+        )
+    );
+    const auto raw_data_writer_instance = MovementHostBuilder<PicoAxesControllerConfig, RawData>::RawDataWriterInstance(
+        new RawDataPackageWriter(
+            package_descriptor,
+            serialize_package_size,
+            write_raw_data
+        )
+    );
+
     auto host_builder = MovementHostBuilder<PicoAxesControllerConfig, RawData>();
 	host_builder
         .set_api_request_parser(parse_api_request)
+        .set_raw_data_reader(raw_data_reader_instance)
         .set_api_response_serializer(serialize_api_response)
+        .set_raw_data_writer(raw_data_writer_instance)
         .set_axes_controller_creator(create_axes_controller);
 	
         
