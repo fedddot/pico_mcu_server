@@ -22,7 +22,7 @@ namespace pico {
         void step(const manager::Axis& axis, const manager::Direction& direction, const double duration) override;
         void enable() override;
         void disable() override;
-        virtual double get_step_length(const manager::Axis& axis) const override;
+        double get_step_length(const manager::Axis& axis) const override;
     private:
         PicoAxesControllerConfig m_config;
         using Steppers = std::map<manager::Axis, manager::Instance<PicoStepper>>;
@@ -58,6 +58,10 @@ namespace pico {
         disable_steppers(&m_steppers);
     }
 
+    inline double PicoAxisController::get_step_length(const manager::Axis& axis) const {
+        return m_config.axis_config(axis).step_length;
+    }
+
     inline void PicoAxisController::disable_steppers(Steppers *steppers) {
         for (auto& [axis, stepper_instance]: *steppers) {
             stepper_instance.get().set_state(PicoStepper::State::DISABLED);
@@ -70,7 +74,7 @@ namespace pico {
         }
     }
 
-    inline PicoAxisController::Steppers PicoAxisController::create_steppers(const PicoAxesControllerConfig& config) {
+    inline typename PicoAxisController::Steppers PicoAxisController::create_steppers(const PicoAxesControllerConfig& config) {
         using namespace manager;
         Steppers steppers;
         for (const auto& axis: {Axis::X, Axis::Y, Axis::Z}) {
