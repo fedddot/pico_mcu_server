@@ -18,12 +18,19 @@ namespace pico {
             ENABLED,
             DISABLED
         };
+        struct Config {
+            std::size_t enable_pin;
+            std::size_t step_pin;
+            std::size_t dir_pin;
+            std::size_t hold_time_us;
+        };
         PicoStepper(
             const std::size_t& enable_pin,
             const std::size_t& step_pin,
             const std::size_t& dir_pin,
             const std::size_t& hold_time_us
         );
+        PicoStepper(const Config& config);
         PicoStepper(const PicoStepper&) = delete;
         PicoStepper& operator=(const PicoStepper&) = delete;
         virtual ~PicoStepper() noexcept;
@@ -48,6 +55,14 @@ namespace pico {
     ): m_enable_pin(enable_pin),
         m_step_pin(step_pin), m_dir_pin(dir_pin),
         m_hold_time_us(hold_time_us) {
+        init_output(m_enable_pin, true); // en pin has inverse logic
+        init_output(m_step_pin, false);
+        init_output(m_dir_pin, false);
+    }
+
+    inline PicoStepper::PicoStepper(const Config& config): m_enable_pin(config.enable_pin),
+        m_step_pin(config.step_pin), m_dir_pin(config.dir_pin),
+        m_hold_time_us(config.hold_time_us) {
         init_output(m_enable_pin, true); // en pin has inverse logic
         init_output(m_step_pin, false);
         init_output(m_dir_pin, false);
