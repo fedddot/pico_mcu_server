@@ -11,7 +11,8 @@
 #include "hardware/regs/intctrl.h"
 #include "hardware/gpio.h"
 
-#include "axes_controller.hpp"
+#include "pico_axis_controller_config.hpp"
+#include "pico_axis_controller.hpp"
 #include "ipc_instance.hpp"
 #include "manager_instance.hpp"
 #include "movement_host_builder.hpp"
@@ -201,9 +202,9 @@ inline void init_uart_listener() {
 }
 
 inline Json::Value cfg2json(const AxisControllerConfig& cfg) {
-	return Json::Value(cfg);
+    return cfg;
 }
 
 inline AxisControllerConfig json2cfg(const Json::Value& cfg) {
-	return cfg.asString();
+	return cfg;
 }

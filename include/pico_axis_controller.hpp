@@ -1,6 +1,7 @@
 #ifndef	PICO_AXIS_CONTROLLER_HPP
 #define	PICO_AXIS_CONTROLLER_HPP
 
+#include <map>
 #include <stdexcept>
 
 #include "axes_controller.hpp"
@@ -9,29 +10,27 @@
 
 #include "movement_manager_data.hpp"
 
-#include "stepper_motor.hpp"
-#include "stepper_motor_data.hpp"
+#include "pico_stepper_motor.hpp"
 
 namespace pico {
     class PicoAxisController: public manager::AxesController {
     public:
         struct StepperMotorDescriptor {
-            manager::Instance<manager::StepperMotor> stepper;
-            std::map<manager::Direction, manager::RotationDirection> directions;
+            manager::Instance<PicoStepper> stepper;
+            std::map<manager::Direction, PicoStepper::Direction> directions;
         };
         using Steppers = std::map<manager::Axis, StepperMotorDescriptor>;
         PicoAxisController(
-            const manager::AxesProperties& axes_properties,
             const Steppers& steppers
         );
         PicoAxisController(const PicoAxisController&) = default;
         PicoAxisController& operator=(const PicoAxisController&) = default;
         
         ~PicoAxisController() noexcept override;
-        void step(const manager::AxisStep& step) override;
+        void step(const manager::Axis& axis, const manager::Direction& direction, const double duration) override;
         void enable() override;
         void disable() override;
-        AxesController *clone() const override;
+        virtual double get_step_length(const manager::Axis& axis) const override;
     private:
         manager::AxesProperties m_axes_properties;
         Steppers m_steppers;

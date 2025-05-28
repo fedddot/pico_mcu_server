@@ -10,6 +10,10 @@ namespace pico {
     struct AxisConfig {
         using DirectionsMapping = std::map<manager::Direction, PicoStepper::Direction>;
         AxisConfig(
+            const std::size_t& enable_pin,
+            const std::size_t& step_pin,
+            const std::size_t& dir_pin,
+            const std::size_t& hold_time_us = 10,
             const double step_length = 0.1,
             const DirectionsMapping& directions_mapping = DirectionsMapping {
                 {manager::Direction::NEGATIVE, PicoStepper::Direction::CCW},

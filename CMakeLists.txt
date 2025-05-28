@@ -14,6 +14,25 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+add_library(axis_config INTERFACE)
+target_include_directories(axis_config INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+    axis_config
+    INTERFACE
+    pico_stdlib
+    movement_manager_data
+    pico_stepper_motor
+)
+
+add_library(pico_axis_controller_config INTERFACE)
+target_include_directories(pico_axis_controller_config INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+    pico_axis_controller_config
+    INTERFACE
+    axis_config
+    movement_manager_data
+)
+
 add_library(pico_stepper_motor INTERFACE)
 target_include_directories(pico_stepper_motor INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(
@@ -21,6 +40,7 @@ target_link_libraries(
     INTERFACE
     stepper_motor
     stepper_motor_data
+    pico_axis_controller_config
     pico_stdlib
 )
 
