@@ -1,32 +1,20 @@
-#include <cstddef>
-#include <map>
 #include <string>
 
-#include "json/value.h"
-
-#include "ipc_data.hpp"
-#include "movement_vendor_api_request.hpp"
-#include "movement_vendor_api_response.hpp"
-#include "pico/stdio.h"
-#include "pico/time.h"
-#include "hardware/uart.h"
+#include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
-#include "hardware/gpio.h"
+#include "hardware/uart.h"
+#include "pico/stdio.h"
 
-#include "pico_axis_controller_config.hpp"
-#include "pico_axis_controller.hpp"
+#include "ipc_data.hpp"
 #include "ipc_instance.hpp"
 #include "manager_instance.hpp"
 #include "movement_host_builder.hpp"
-#include "movement_manager_data.hpp"
+#include "movement_vendor_api_request.hpp"
+#include "movement_vendor_api_response.hpp"
 #include "pico_axis_controller.hpp"
-#include "pico_stepper_motor.hpp"
-#include "raw_data_package_descriptor.hpp"
-#include "raw_data_package_reader.hpp"
-#include "raw_data_package_utils.hpp"
-#include "raw_data_package_writer.hpp"
 #include "pico_axis_controller_config.hpp"
+#include "raw_data_package_descriptor.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -56,8 +44,6 @@ static RawData serialize_api_response(const vendor::MovementVendorApiResponse& r
 
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
-static Json::Value cfg2json(const PicoAxesControllerConfig& cfg);
-static PicoAxesControllerConfig json2cfg(const Json::Value& cfg);
 
 int main(void) {
     s_raw_data_buffer.reserve(BUFFER_SIZE_INCREMENT);
@@ -85,61 +71,17 @@ int main(void) {
 }
 
 inline manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config) {
-    const auto directions = std::map<Direction, RotationDirection> {
-        {Direction::NEGATIVE, RotationDirection::CCW},
-        {Direction::POSITIVE, RotationDirection::CW},
-    };
-    const auto hold_time_us = 100UL;
-    const auto steppers = PicoAxisController::Steppers {
-        {
-            Axis::X,
-            PicoAxisController::StepperMotorDescriptor {
-                .stepper = manager::Instance<StepperMotor>(
-                    new  PicoStepper(
-                        17UL,
-                        16UL,
-                        15UL,
-                        hold_time_us
-                    )
-                ),
-                .directions = directions,
-            }
-        },
-        {
-            Axis::Y,
-            PicoAxisController::StepperMotorDescriptor {
-                .stepper = manager::Instance<StepperMotor>(
-                    new  PicoStepper(
-                        12UL,
-                        11UL,
-                        10UL,
-                        hold_time_us
-                    )
-                ),
-                .directions = directions,
-            }
-        },
-        {
-            Axis::Z,
-            PicoAxisController::StepperMotorDescriptor {
-                .stepper = manager::Instance<StepperMotor>(
-                    new  PicoStepper(
-                        8UL,
-                        7UL,
-                        6UL,
-                        hold_time_us
-                    )
-                ),
-                .directions = directions,
-            }
-        },
-    };
     return manager::Instance<AxesController>(
-        new PicoAxisController(
-            AxesProperties(0.1, 0.1, 0.1),
-            steppers
-        )
+        new PicoAxisController(config)
     );
+}
+
+inline ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data) {
+    throw std::runtime_error("parse_api_request is not implemented");
+}
+
+inline RawData serialize_api_response(const vendor::MovementVendorApiResponse& response) {
+    throw std::runtime_error("serialize_api_response is not implemented");
 }
 
 inline void write_raw_data(const RawData& data) {
@@ -175,12 +117,4 @@ inline void init_uart_listener() {
     irq_set_exclusive_handler(UART0_IRQ, &on_received_cb);
     irq_set_enabled(UART0_IRQ, true);
     uart_set_irq_enables(uart0, true, false);
-}
-
-inline Json::Value cfg2json(const PicoAxesControllerConfig& cfg) {
-    return cfg;
-}
-
-inline PicoAxesControllerConfig json2cfg(const Json::Value& cfg) {
-	return cfg;
 }
