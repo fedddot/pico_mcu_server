@@ -4,6 +4,9 @@
 
 #include "json/value.h"
 
+#include "ipc_data.hpp"
+#include "movement_vendor_api_request.hpp"
+#include "movement_vendor_api_response.hpp"
 #include "pico/stdio.h"
 #include "pico/time.h"
 #include "hardware/uart.h"
@@ -23,8 +26,7 @@
 #include "raw_data_package_reader.hpp"
 #include "raw_data_package_utils.hpp"
 #include "raw_data_package_writer.hpp"
-#include "stepper_motor.hpp"
-#include "stepper_motor_data.hpp"
+#include "pico_axis_controller_config.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -45,16 +47,17 @@ using namespace host;
 using namespace manager;
 using namespace pico;
 
-using AxisControllerConfig = Json::Value;
-
 static auto s_raw_data_buffer = RawData();
 
-static void generate_timeout(const std::size_t& timeout_ms);
-static manager::Instance<AxesController> create_axes_controller(const AxisControllerConfig& config);
+static manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config);
+static ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data);
+static RawData serialize_api_response(const vendor::MovementVendorApiResponse& response);
+
+
 static void write_raw_data(const RawData& data);
 static void init_uart_listener();
-static Json::Value cfg2json(const AxisControllerConfig& cfg);
-static AxisControllerConfig json2cfg(const Json::Value& cfg);
+static Json::Value cfg2json(const PicoAxesControllerConfig& cfg);
+static PicoAxesControllerConfig json2cfg(const Json::Value& cfg);
 
 int main(void) {
     s_raw_data_buffer.reserve(BUFFER_SIZE_INCREMENT);
@@ -64,51 +67,24 @@ int main(void) {
         RawData(preamble_str.begin(), preamble_str.end()),
         MSG_SIZE_FIELD_LEN
     );
-    auto host_builder = MovementHostBuilder<AxisControllerConfig>();
-	host_builder.set_axes_properties(
-        AxesProperties(
-            0.1 / 4.0,
-            0.1 / 4.0,
-            0.1 / 4.0
-        )
-    );
-	host_builder.set_axes_controller_ctor(create_axes_controller);
-	host_builder.set_raw_data_writer(
-		ipc::Instance<IpcDataWriter<RawData>>(
-			new RawDataPackageWriter(
-                package_descriptor,
-                serialize_package_size,
-                write_raw_data
-            )
-		)
-	);
-	host_builder.set_raw_data_reader(
-		ipc::Instance<IpcDataReader<RawData>>(
-			new RawDataPackageReader(
-                &s_raw_data_buffer,
-                package_descriptor,
-                parse_package_size
-            )
-		)
-	);
-	host_builder.set_json_cfg_to_ctrlr(json2cfg);
-	host_builder.set_ctrlr_cfg_to_json(cfg2json);
-    auto host_instance = host_builder.build();
-    
+    auto host_builder = MovementHostBuilder<PicoAxesControllerConfig, RawData>();
+	host_builder
+        .set_api_request_parser(parse_api_request)
+        .set_api_response_serializer(serialize_api_response)
+        .set_axes_controller_creator(create_axes_controller);
+	
+        
     stdio_init_all();
     init_uart_listener();
-
+        
+    auto host = host_builder.build();
     while (true) {
-        host_instance.get().run_once();
+        host.run_once();
     }
     return 0;
 }
 
-inline void generate_timeout(const std::size_t& timeout_ms) {
-    sleep_ms(timeout_ms);
-}
-
-inline manager::Instance<AxesController> create_axes_controller(const AxisControllerConfig& config) {
+inline manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config) {
     const auto directions = std::map<Direction, RotationDirection> {
         {Direction::NEGATIVE, RotationDirection::CCW},
         {Direction::POSITIVE, RotationDirection::CW},
@@ -201,10 +177,10 @@ inline void init_uart_listener() {
     uart_set_irq_enables(uart0, true, false);
 }
 
-inline Json::Value cfg2json(const AxisControllerConfig& cfg) {
+inline Json::Value cfg2json(const PicoAxesControllerConfig& cfg) {
     return cfg;
 }
 
-inline AxisControllerConfig json2cfg(const Json::Value& cfg) {
+inline PicoAxesControllerConfig json2cfg(const Json::Value& cfg) {
 	return cfg;
 }
