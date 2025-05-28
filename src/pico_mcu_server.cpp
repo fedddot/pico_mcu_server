@@ -141,7 +141,8 @@ inline PicoAxesControllerConfig parse_axes_controller_cfg(const Json::Value& jso
     PicoAxesControllerConfig::AxesConfig axes_config;
     for (const auto& [axis_str, axis]: axes_mapping) {
         const auto axis_cfg_json = retrieve_val_from_object(json_data, axis_str);
-        axes_config[axis] = parse_axis_cfg(axis_cfg_json);
+        const auto axis_cfg = parse_axis_cfg(axis_cfg_json);
+        axes_config.insert({ axis, axis_cfg });
     }
     return PicoAxesControllerConfig(axes_config);
 }
