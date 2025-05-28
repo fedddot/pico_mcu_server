@@ -61,6 +61,8 @@ target_link_libraries(
     movement_host_builder
     movement_vendor_api_request
     movement_vendor_api_response
+    movement_json_api_request_parser
+    movement_json_api_response_serializer
     pico_axis_controller
     pico_axis_controller_config
     raw_data_package_descriptor

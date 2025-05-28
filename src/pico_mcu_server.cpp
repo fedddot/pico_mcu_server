@@ -1,5 +1,7 @@
+#include "json/reader.h"
 #include <string>
 
+#include "json/writer.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
@@ -14,7 +16,10 @@
 #include "movement_vendor_api_response.hpp"
 #include "pico_axis_controller.hpp"
 #include "pico_axis_controller_config.hpp"
+#include "pico_stepper_motor.hpp"
 #include "raw_data_package_descriptor.hpp"
+#include "movement_json_api_response_serializer.hpp"
+#include "movement_json_api_request_parser.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -76,12 +81,62 @@ inline manager::Instance<AxesController> create_axes_controller(const PicoAxesCo
     );
 }
 
+inline double retrieve_double(const Json::Value& json_val, const std::string& key) {
+    if (!json_val.isMember(key)) {
+        throw std::invalid_argument("missing " + key + " key in json data");
+    }
+    const auto val = json_val[key];
+    if (!val.isDouble()) {
+        throw std::invalid_argument(key + " key in json data is not a double");
+    }
+    return val.asDouble();
+}
+
+inline int retrieve_int(const Json::Value& json_val, const std::string& key) {
+    if (!json_val.isMember(key)) {
+        throw std::invalid_argument("missing " + key + " key in json data");
+    }
+    const auto val = json_val[key];
+    if (!val.isInt()) {
+        throw std::invalid_argument(key + " key in json data is not an integer");
+    }
+    return val.asInt();
+}
+
+inline typename PicoStepper::Config parse_stepper_cfg(const Json::Value& json_data) {
+    return PicoStepper::Config {
+        .enable_pin = static_cast<size_t>(retrieve_int(json_data, "enable_pin")),
+        .step_pin = static_cast<size_t>(retrieve_int(json_data, "step_pin")),
+        .dir_pin = static_cast<size_t>(retrieve_int(json_data, "dir_pin")),
+        .hold_time_us = static_cast<size_t>(retrieve_int(json_data, "hold_time_us")),
+    };
+}
+
 inline ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data) {
-    throw std::runtime_error("parse_api_request is not implemented");
+    const auto json_parser = MovementJsonApiRequestParser<PicoAxesControllerConfig>(
+        [](const Json::Value& json_data) -> PicoAxesControllerConfig {
+
+            return PicoAxesControllerConfig()
+                retrieve_double(json_data, "x_step_length"),
+                retrieve_double(json_data, "y_step_length"),
+                retrieve_double(json_data, "z_step_length")
+            );
+        }
+    );
+    Json::Value json_val;
+    Json::Reader reader;
+    if (!reader.parse(std::string(raw_data.begin(), raw_data.end()), std::ref(json_val), true)) {
+        throw std::runtime_error("failed to parse raw ipc_data data: " + reader.getFormattedErrorMessages());
+    }
+    return json_parser(json_val);
 }
 
 inline RawData serialize_api_response(const vendor::MovementVendorApiResponse& response) {
-    throw std::runtime_error("serialize_api_response is not implemented");
+    const auto json_serializer = MovementJsonApiResponseSerializer();
+    const auto json_response = json_serializer(response);
+    const auto writer_builder = Json::StreamWriterBuilder();
+    const auto serial_str = Json::writeString(writer_builder, json_response);
+    return RawData(serial_str.begin(), serial_str.end());
 }
 
 inline void write_raw_data(const RawData& data) {
