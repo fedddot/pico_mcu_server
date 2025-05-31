@@ -34,10 +34,16 @@ target_include_directories(movement_proto_api_request_parser INTERFACE ${CMAKE_C
 target_link_libraries(
 	movement_proto_api_request_parser
 	INTERFACE
+    axes_controller_config_request
+    axis_config
     ipc_data
     ipc_instance
+    linear_movement_request
+    movement_manager_data
+    movement_vendor_api
     movement_vendor_api_request
-	movement_vendor_api
+    pico_axis_controller_config
+    rotation_movement_request
 	pb_decode
 	pb_common
 )
