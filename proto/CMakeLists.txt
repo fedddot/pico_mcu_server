@@ -42,4 +42,16 @@ target_link_libraries(
 	pb_common
 )
 
+add_library(movement_proto_api_response_serializer INTERFACE)
+target_include_directories(movement_proto_api_response_serializer INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
+target_link_libraries(
+	movement_proto_api_response_serializer
+	INTERFACE
+    ipc_data
+    movement_vendor_api_response
+    movement_vendor_api
+	pb_encode
+	pb_common
+)
+
 add_subdirectory(tests EXCLUDE_FROM_ALL)

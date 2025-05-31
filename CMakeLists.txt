@@ -73,6 +73,7 @@ target_link_libraries(
     raw_data_package_writer
 
     movement_proto_api_request_parser
+    movement_proto_api_response_serializer
     
     jsoncpp_static
     pico_stdlib
