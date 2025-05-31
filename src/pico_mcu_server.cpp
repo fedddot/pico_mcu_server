@@ -26,6 +26,7 @@
 #include "raw_data_package_reader.hpp"
 #include "raw_data_package_utils.hpp"
 #include "raw_data_package_writer.hpp"
+#include "movement_proto_api_request_parser.hpp"
 
 #ifndef MSG_PREAMBLE
 #   error "MSG_PREAMBLE is not defined"
@@ -49,7 +50,6 @@ using namespace pico;
 static auto s_raw_data_buffer = RawData();
 
 static manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config);
-static ipc::Instance<vendor::MovementVendorApiRequest> parse_api_request(const RawData& raw_data);
 static RawData serialize_api_response(const vendor::MovementVendorApiResponse& response);
 
 
@@ -79,9 +79,11 @@ int main(void) {
         )
     );
 
+    const auto request_parser = MovementProtoApiRequestParser();
+
     auto host_builder = MovementHostBuilder<PicoAxesControllerConfig, RawData>();
 	host_builder
-        .set_api_request_parser(parse_api_request)
+        .set_api_request_parser(request_parser)
         .set_raw_data_reader(raw_data_reader_instance)
         .set_api_response_serializer(serialize_api_response)
         .set_raw_data_writer(raw_data_writer_instance)

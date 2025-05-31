@@ -71,6 +71,8 @@ target_link_libraries(
     raw_data_package_reader
     raw_data_package_utils
     raw_data_package_writer
+
+    movement_proto_api_request_parser
     
     jsoncpp_static
     pico_stdlib
@@ -84,4 +86,5 @@ target_compile_definitions(
     -DPICO_IPC_BAUD=115200UL
 )
 
+add_subdirectory(proto)
 add_subdirectory(external)
