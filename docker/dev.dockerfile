@@ -1,22 +1,16 @@
-FROM mcu-server-dev:latest AS builder
+FROM alpine:latest AS base_image
 
-RUN apt update
+RUN apk update
+RUN apk add git make cmake clang-extra-tools
+RUN apk add gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gdb-multiarch
+RUN apk add python3 python3-dev py3-pip
+RUN pip install --upgrade --break-system-packages protobuf grpcio-tools
 
-# pico-sdk deps
-RUN apt install -y cmake gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib gdb-multiarch
+ENV PICO_SDK_PATH=/usr/app/deps/pico-sdk
+WORKDIR ${PICO_SDK_PATH}
+RUN git clone --branch=2.1.1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH}
+RUN git submodule update --init
 
-# install externals
-ARG EXTERNAL_PATH=/usr/src/external
-WORKDIR ${EXTERNAL_PATH} 
+WORKDIR /usr/app/src
 
-RUN git clone --branch=2.1.1 https://github.com/raspberrypi/pico-sdk.git pico-sdk
-RUN cd pico-sdk && git submodule update --init
-ENV PICO_SDK_PATH=${EXTERNAL_PATH}/pico-sdk
-
-RUN git clone --branch=main https://github.com/fedddot/mcu_server.git mcu_server
-ENV MCU_SERVER_PATH=${EXTERNAL_PATH}/mcu_server
-
-# server sources should be mapped to this path during container run
-WORKDIR /usr/src/app
-
-CMD ["/bin/bash"]
+ENTRYPOINT ["sh"]

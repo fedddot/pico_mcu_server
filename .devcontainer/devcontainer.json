@@ -1,8 +1,9 @@
 {
-	"name": "pico-mcu-server-dev-container",
-	"image": "pico-mcu-server-dev:latest",
-	"privileged": true,
-	"runArgs": [ "--network=host" ],
+    "build": {
+        "dockerfile": "../docker/dev.dockerfile",
+        "context": ".."
+    },
+    "privileged": true,
 	"customizations": {
 		"vscode": {
 			"extensions": [
