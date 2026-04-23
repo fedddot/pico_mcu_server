@@ -6,38 +6,15 @@
 #include "hardware/uart.h"
 #include "pico/stdio.h"
 
-#include "ipc_data.hpp"
-#include "manager_instance.hpp"
-#include "movement_host_builder.hpp"
-#include "pico_axis_controller.hpp"
-#include "pico_axis_controller_config.hpp"
-#include "raw_data_package_descriptor.hpp"
-#include "raw_data_package_reader.hpp"
-#include "raw_data_package_utils.hpp"
-#include "raw_data_package_writer.hpp"
-#include "movement_proto_api_request_parser.hpp"
-#include "movement_proto_api_response_serializer.hpp"
-
-#ifndef MSG_PREAMBLE
-#   error "MSG_PREAMBLE is not defined"
-#endif
-
-#ifndef MSG_SIZE_FIELD_LEN
-#   error "MSG_SIZE_FIELD_LEN is not defined"
-#endif
+#include "ring_buffer.hpp"
 
 #ifndef PICO_IPC_BAUD
 #   error "PICO_IPC_BAUD is not defined"
 #endif
 
-#define BUFFER_SIZE_INCREMENT 100UL
+using namespace nanoipc;
 
-using namespace ipc;
-using namespace host;
-using namespace manager;
-using namespace pico;
-
-static auto s_raw_data_buffer = RawData();
+static auto s_raw_data_buffer = RingBuffer<10>;
 
 static manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config);
 

@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+set(BUILD_TESTS OFF)
 include(FetchContent)
 FetchContent_Declare(
     nanoipc
@@ -27,6 +28,9 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
+    pb_message_reader
+    pb_message_writer
+    ring_buffer
     pico_stdlib
 )
 
