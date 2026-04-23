@@ -1,4 +1,4 @@
-#include <string>
+#include <cstdint>
 
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
@@ -7,6 +7,14 @@
 #include "pico/stdio.h"
 
 #include "ring_buffer.hpp"
+#include "cobs_frame_reader.hpp"
+#include "cobs_frame_writer.hpp"
+#include "json_message_reader.hpp"
+#include "json_message_writer.hpp"
+
+#ifndef BUFF_SIZE
+#   error "BUFF_SIZE is not defined"
+#endif 
 
 #ifndef PICO_IPC_BAUD
 #   error "PICO_IPC_BAUD is not defined"
@@ -14,75 +22,39 @@
 
 using namespace nanoipc;
 
-static auto s_raw_data_buffer = RingBuffer<10>;
+static RingBuffer<BUFF_SIZE> s_raw_data_buffer;
 
-static manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config);
-
-static void write_raw_data(const RawData& data);
+static void write_raw_data(const std::uint8_t *data, const std::size_t size);
 static void init_uart_listener();
 
 int main(void) {
-    s_raw_data_buffer.reserve(BUFFER_SIZE_INCREMENT);
+    CobsFrameReader cobs_frame_reader(&s_raw_data_buffer);
+    JsonMessageReader json_message_reader(&cobs_frame_reader);
 
-    const auto preamble_str = std::string(MSG_PREAMBLE);
-    const auto package_descriptor = RawDataPackageDescriptor(
-        RawData(preamble_str.begin(), preamble_str.end()),
-        MSG_SIZE_FIELD_LEN
-    );
-    const auto raw_data_reader_instance = MovementHostBuilder<PicoAxesControllerConfig, RawData>::RawDataReaderInstance(
-        new RawDataPackageReader(
-            &s_raw_data_buffer,
-            package_descriptor,
-            parse_package_size
-        )
-    );
-    const auto raw_data_writer_instance = MovementHostBuilder<PicoAxesControllerConfig, RawData>::RawDataWriterInstance(
-        new RawDataPackageWriter(
-            package_descriptor,
-            serialize_package_size,
-            write_raw_data
-        )
-    );
+    const CobsFrameWriter cobs_frame_writer(&write_raw_data);
+    JsonMessageWriter json_message_writer(&cobs_frame_writer);
 
-    const auto request_parser = MovementProtoApiRequestParser();
-    const auto response_serializer = MovementProtoApiResponseSerializer();
-
-    auto host_builder = MovementHostBuilder<PicoAxesControllerConfig, RawData>();
-	host_builder
-        .set_api_request_parser(request_parser)
-        .set_raw_data_reader(raw_data_reader_instance)
-        .set_api_response_serializer(response_serializer)
-        .set_raw_data_writer(raw_data_writer_instance)
-        .set_axes_controller_creator(create_axes_controller);
-	
-        
     stdio_init_all();
     init_uart_listener();
         
-    auto host = host_builder.build();
     while (true) {
-        host.run_once();
+        const auto msg = json_message_reader.read();
+        if (!msg.has_value()) {
+            continue;
+        }
+        json_message_writer.write(msg.value());
     }
     return 0;
 }
 
-inline manager::Instance<AxesController> create_axes_controller(const PicoAxesControllerConfig& config) {
-    return manager::Instance<AxesController>(
-        new PicoAxisController(config)
-    );
-}
-
-inline void write_raw_data(const RawData& data) {
-    for (const auto ch: data) {
-        uart_putc(uart0, ch);
+inline void write_raw_data(const std::uint8_t *data, const std::size_t size) {
+    for (std::size_t i = 0; i < size; ++i) {
+        uart_putc(uart0, data[i]);
     }
 }
 
 inline void on_received_cb() {
     while (uart_is_readable(uart0)) {
-        if (s_raw_data_buffer.size() >= s_raw_data_buffer.capacity()) {
-            s_raw_data_buffer.reserve(s_raw_data_buffer.capacity() + BUFFER_SIZE_INCREMENT);
-        }
         s_raw_data_buffer.push_back(uart_getc(uart0));
     }
     irq_clear(UART0_IRQ);

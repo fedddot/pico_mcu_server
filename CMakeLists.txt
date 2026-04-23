@@ -28,8 +28,10 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
-    pb_message_reader
-    pb_message_writer
+    cobs_frame_reader
+    cobs_frame_writer
+    json_message_reader
+    json_message_writer
     ring_buffer
     pico_stdlib
 )
@@ -37,7 +39,6 @@ target_link_libraries(
 target_compile_definitions(
     pico_mcu_server
     PRIVATE
-    -DMSG_PREAMBLE="MSG_PREAMBLE"
-    -DMSG_SIZE_FIELD_LEN=4UL
+    -DBUFF_SIZE=256
     -DPICO_IPC_BAUD=115200UL
 )
