@@ -54,6 +54,9 @@ int main(void) {
         resp["accel_x"] = gyro.read_accel(mpu6050_axis_t::MPU6050_AXIS_X);
         resp["accel_y"] = gyro.read_accel(mpu6050_axis_t::MPU6050_AXIS_Y);
         resp["accel_z"] = gyro.read_accel(mpu6050_axis_t::MPU6050_AXIS_Z);
+        resp["gyro_x"] = gyro.read_gyro(mpu6050_axis_t::MPU6050_AXIS_X);
+        resp["gyro_y"] = gyro.read_gyro(mpu6050_axis_t::MPU6050_AXIS_Y);
+        resp["gyro_z"] = gyro.read_gyro(mpu6050_axis_t::MPU6050_AXIS_Z);
         json_message_writer.write(resp);
     }
     return 0;

@@ -315,7 +315,28 @@ namespace pico {
                     throw std::runtime_error("Invalid axis");
             }
         }
-        
+
+        std::float_t read_gyro(const mpu6050_axis_t axis) {
+            std::int16_t accel_raw[3];
+            std::float_t accel_g[3];
+            std::int16_t gyro_raw[3];
+            std::float_t gyro_dps[3];
+            std::uint16_t length(3UL);
+
+            if (0 != mpu6050_read(&m_handle, (std::int16_t (*)[3])&accel_raw, (std::float_t (*)[3])&accel_g, (std::int16_t (*)[3])&gyro_raw, (std::float_t (*)[3])&gyro_dps, &length)) {
+                throw std::runtime_error("Failed to read gyroscope from MPU6050");
+            }
+            switch (axis) {
+                case mpu6050_axis_t::MPU6050_AXIS_X:
+                    return gyro_dps[0];
+                case mpu6050_axis_t::MPU6050_AXIS_Y:
+                    return gyro_dps[1];
+                case mpu6050_axis_t::MPU6050_AXIS_Z:
+                    return gyro_dps[2];
+                default:
+                    throw std::runtime_error("Invalid axis");
+            }
+        }
     private:
         mpu6050_handle_t m_handle;
         static uint8_t iic_init(void) {
