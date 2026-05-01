@@ -41,6 +41,7 @@ int main(void) {
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
     DriverMpu6050Pico gyro(0xD0);
+    const auto temp = gyro.read_temp();
         
     while (true) {
         const auto msg = json_message_reader.read();

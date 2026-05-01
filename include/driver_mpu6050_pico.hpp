@@ -1,10 +1,12 @@
 #ifndef	DRIVER_MPU6050_PICO_HPP
 #define	DRIVER_MPU6050_PICO_HPP
 
+#include <cmath>
 #include <cstdint>
 #include <cstdarg>
 #include <cstring>
 #include <cstdio>
+#include <stdexcept>
 
 #include "hardware/i2c.h"
 #include "hardware/gpio.h"
@@ -33,6 +35,15 @@ namespace pico {
         DriverMpu6050Pico(const DriverMpu6050Pico&) = delete;
         DriverMpu6050Pico& operator=(const DriverMpu6050Pico&) = delete;
         ~DriverMpu6050Pico() noexcept = default;
+
+        std::float_t read_temp() {
+            std::int16_t raw_value;
+            std::float_t degree_value;
+            if (0 != mpu6050_read_temperature(&m_handle, &raw_value, &degree_value)) {
+                throw std::runtime_error("Failed to read temperature from MPU6050");
+            }
+            return degree_value;
+        }
         
     private:
         mpu6050_handle_t m_handle;
