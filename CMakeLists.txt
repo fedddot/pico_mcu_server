@@ -37,6 +37,12 @@ target_include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/include
     ${mpu6050_SOURCE_DIR}/src
 )
+target_link_libraries(
+    driver_mpu6050_pico
+    INTERFACE
+    pico_stdlib
+    hardware_i2c
+)
 
 
 
