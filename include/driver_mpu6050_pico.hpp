@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <stdexcept>
 
+#include "pico/time.h"
 #include "hardware/i2c.h"
 #include "hardware/gpio.h"
 
