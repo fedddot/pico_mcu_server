@@ -281,7 +281,9 @@ namespace pico {
         }
         DriverMpu6050Pico(const DriverMpu6050Pico&) = delete;
         DriverMpu6050Pico& operator=(const DriverMpu6050Pico&) = delete;
-        ~DriverMpu6050Pico() noexcept = default;
+        ~DriverMpu6050Pico() noexcept {
+            mpu6050_deinit(&m_handle);
+        }
 
         std::float_t read_temp() {
             std::int16_t raw_value;
@@ -289,6 +291,28 @@ namespace pico {
             if (0 != mpu6050_read_temperature(&m_handle, &raw_value, &degree_value)) {
                 throw std::runtime_error("Failed to read temperature from MPU6050");            }
             return degree_value;
+        }
+
+        std::float_t read_accel(const mpu6050_axis_t axis) {
+            std::int16_t accel_raw[3];
+            std::float_t accel_g[3];
+            std::int16_t gyro_raw[3];
+            std::float_t gyro_dps[3];
+            std::uint16_t length(3UL);
+
+            if (0 != mpu6050_read(&m_handle, (std::int16_t (*)[3])&accel_raw, (std::float_t (*)[3])&accel_g, (std::int16_t (*)[3])&gyro_raw, (std::float_t (*)[3])&gyro_dps, &length)) {
+                throw std::runtime_error("Failed to read accelerometer from MPU6050");
+            }
+            switch (axis) {
+                case mpu6050_axis_t::MPU6050_AXIS_X:
+                    return accel_g[0];
+                case mpu6050_axis_t::MPU6050_AXIS_Y:
+                    return accel_g[1];
+                case mpu6050_axis_t::MPU6050_AXIS_Z:
+                    return accel_g[2];
+                default:
+                    throw std::runtime_error("Invalid axis");
+            }
         }
         
     private:

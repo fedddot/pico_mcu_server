@@ -1,3 +1,4 @@
+#include "json/value.h"
 #include <cstdint>
 
 #include "driver_mpu6050.h"
@@ -42,14 +43,16 @@ int main(void) {
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
     DriverMpu6050Pico gyro(mpu6050_address_t::MPU6050_ADDRESS_AD0_LOW);
-    const auto temp = gyro.read_temp();
-        
+    
     while (true) {
         const auto msg = json_message_reader.read();
         if (!msg.has_value()) {
             continue;
         }
-        json_message_writer.write(msg.value());
+        const auto temp = gyro.read_temp();
+        auto val = Json::Value(Json::objectValue);
+        val["temperature"] = temp;
+        json_message_writer.write(val);
     }
     return 0;
 }
