@@ -108,7 +108,7 @@ def setup_axes(ax, scale):
         )
 
 
-def render(fig, ax, data: dict, gyro_compensation=(0.0, 0.0, 0.0)):
+def render(fig, ax, data: dict, phi: np.ndarray, gyro_compensation=(0.0, 0.0, 0.0)):
     ax.cla()
 
     g = np.array([data["accel_x"], data["accel_y"], data["accel_z"]])
@@ -120,26 +120,31 @@ def render(fig, ax, data: dict, gyro_compensation=(0.0, 0.0, 0.0)):
 
     g_mag = np.linalg.norm(g)
     w_mag = np.linalg.norm(w)
+    phi_mag = np.linalg.norm(phi)
 
-    # Normalize gyro to same visual scale as accel so both fit the view
-    w_disp = w / w_mag * g_mag if w_mag > 1e-9 else w
+    # Normalize gyro and phi to the accel visual scale so all fit the view
+    w_disp   = w   / w_mag   * g_mag if w_mag   > 1e-9 else w.copy()
+    phi_disp = phi / phi_mag * g_mag if phi_mag > 1e-9 else phi.copy()
 
     scale = max(g_mag * 1.4, 0.1)
     setup_axes(ax, scale)
 
-    make_arrow(ax, g,      color="#e74c3c", label="g (accel) [m/s²]", scale=scale)
-    make_arrow(ax, w_disp, color="#3498db", label="ω (gyro, normalized) [°/s]", scale=scale)
+    make_arrow(ax, g,        color="#e74c3c", label="g (accel) [m/s²]", scale=scale)
+    make_arrow(ax, w_disp,   color="#3498db", label="ω (gyro, normalized) [°/s]", scale=scale)
+    make_arrow(ax, phi_disp, color="#2ecc71", label=f"φ (∫ω·dt, normalized) |φ|={phi_mag:.2f} °", scale=scale)
 
     temp = data.get("temperature", float("nan"))
     ax.set_title(
         f"IMU Vectors  |  T = {temp:.2f} °C\n"
-        f"|g| = {g_mag:.4f} m/s²   |ω| = {w_mag:.2f} °/s",
+        f"|g| = {g_mag:.4f} m/s²   |ω| = {w_mag:.2f} °/s   |φ| = {phi_mag:.2f} °",
         fontsize=10,
     )
     ax.legend(loc="upper left", fontsize=8)
 
     fig.canvas.draw()
     fig.canvas.flush_events()
+
+    return w  # return compensated w so the caller can integrate it
 
 
 def main():
@@ -156,15 +161,18 @@ def main():
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as resp_f:
         resp_file = resp_f.name
 
+    phi = np.zeros(3)
+
     try:
         while plt.fignum_exists(fig.number):
             try:
                 data = query_imu(args, req_file, resp_file)
-                render(fig, ax, data, gyro_compensation=(
+                w = render(fig, ax, data, phi, gyro_compensation=(
                     args.x_gyro_compensation,
                     args.y_gyro_compensation,
                     args.z_gyro_compensation,
                 ))
+                phi += w * args.interval
             except subprocess.CalledProcessError as e:
                 print(f"[error] client failed: {e}")
             except Exception as e:

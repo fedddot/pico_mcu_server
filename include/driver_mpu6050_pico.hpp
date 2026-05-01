@@ -47,7 +47,7 @@ namespace pico {
                 throw std::runtime_error("mpu6050: set sleep failed.\n");            }
             
             /* set the default clock source */
-            res = mpu6050_set_clock_source(&m_handle, MPU6050_CLOCK_SOURCE_PLL_X_GYRO);
+            res = mpu6050_set_clock_source(&m_handle, MPU6050_CLOCK_SOURCE_INTERNAL_8MHZ);
             if (res != 0) {
                 throw std::runtime_error("mpu6050: set clock source failed.\n");            }
             
@@ -57,7 +57,7 @@ namespace pico {
                 throw std::runtime_error("mpu6050: set sample rate divider failed.\n");            }
             
             /* set the default low pass filter */
-            res = mpu6050_set_low_pass_filter(&m_handle, MPU6050_LOW_PASS_FILTER_3);
+            res = mpu6050_set_low_pass_filter(&m_handle, MPU6050_LOW_PASS_FILTER_0);
             if (res != 0) {
                 throw std::runtime_error("mpu6050: set low pass filter failed.\n");            }
             
