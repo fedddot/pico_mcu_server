@@ -11,6 +11,7 @@
 #include "cobs_frame_writer.hpp"
 #include "json_message_reader.hpp"
 #include "json_message_writer.hpp"
+#include "driver_mpu6050_pico.hpp"
 
 #ifndef BUFF_SIZE
 #   error "BUFF_SIZE is not defined"
@@ -21,6 +22,7 @@
 #endif
 
 using namespace nanoipc;
+using namespace pico;
 
 static RingBuffer<BUFF_SIZE> s_raw_data_buffer;
 
@@ -36,6 +38,8 @@ int main(void) {
 
     stdio_init_all();
     init_uart_listener();
+
+    DriverMpu6050Pico gyro;
         
     while (true) {
         const auto msg = json_message_reader.read();
