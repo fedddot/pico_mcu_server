@@ -4,6 +4,7 @@
         "context": ".."
     },
     "privileged": true,
+	"runArgs": ["--network=host"],
 	"customizations": {
 		"vscode": {
 			"extensions": [

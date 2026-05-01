@@ -18,8 +18,8 @@ namespace pico {
     private:
         static constexpr auto I2C_PORT = i2c1;
         static constexpr uint32_t I2C_BAUDRATE = 400000;
-        static constexpr uint GPIO_SDA = 26;
-        static constexpr uint GPIO_SCL = 27;
+        static constexpr uint GPIO_SDA = 2;
+        static constexpr uint GPIO_SCL = 3;
 
     public:
         DriverMpu6050Pico(const mpu6050_address_t iic_addr) {
