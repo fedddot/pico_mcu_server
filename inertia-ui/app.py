@@ -160,7 +160,11 @@ def main():
         while plt.fignum_exists(fig.number):
             try:
                 data = query_imu(args, req_file, resp_file)
-                render(fig, ax, data)
+                render(fig, ax, data, gyro_compensation=(
+                    args.x_gyro_compensation,
+                    args.y_gyro_compensation,
+                    args.z_gyro_compensation,
+                ))
             except subprocess.CalledProcessError as e:
                 print(f"[error] client failed: {e}")
             except Exception as e:
