@@ -1,5 +1,6 @@
 #include <cstdint>
 
+#include "driver_mpu6050.h"
 #include "hardware/gpio.h"
 #include "hardware/irq.h"
 #include "hardware/regs/intctrl.h"
@@ -40,7 +41,7 @@ int main(void) {
     init_uart_listener();
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
-    DriverMpu6050Pico gyro(0xD0);
+    DriverMpu6050Pico gyro(mpu6050_address_t::MPU6050_ADDRESS_AD0_LOW);
     const auto temp = gyro.read_temp();
         
     while (true) {
