@@ -15,4 +15,5 @@ build
 !*.dsl
 !*.yml
 !*.py
+!requirements.txt
 !*.proto
