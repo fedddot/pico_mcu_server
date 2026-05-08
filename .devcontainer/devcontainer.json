@@ -1,10 +1,11 @@
 {
+	"name": "pico-dev-container",
     "build": {
         "dockerfile": "../docker/dev.dockerfile",
         "context": ".."
     },
     "privileged": true,
-	"runArgs": ["--network=host"],
+	"runArgs": ["--network=host", "--name=pico-dev-container"],
 	"customizations": {
 		"vscode": {
 			"extensions": [

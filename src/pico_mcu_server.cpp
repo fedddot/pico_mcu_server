@@ -1,5 +1,6 @@
 #include "json/value.h"
 #include <cstdint>
+#include <stdexcept>
 
 #include "driver_mpu6050.h"
 #include "hardware/gpio.h"
@@ -14,6 +15,8 @@
 #include "json_message_reader.hpp"
 #include "json_message_writer.hpp"
 #include "driver_mpu6050_pico.hpp"
+
+#include "sd_io.h"
 
 #ifndef BUFF_SIZE
 #   error "BUFF_SIZE is not defined"
@@ -40,6 +43,12 @@ int main(void) {
 
     stdio_init_all();
     init_uart_listener();
+
+    SD_DEV sd_card;
+    const auto sd_init_res = SD_Init(&sd_card);
+    if (sd_init_res != SDRESULTS::SD_OK) {
+        throw std::runtime_error("Failed to initialize SD card");
+    }
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
     DriverMpu6050Pico gyro(mpu6050_address_t::MPU6050_ADDRESS_AD0_LOW);
