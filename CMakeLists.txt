@@ -44,7 +44,7 @@ target_link_libraries(
     hardware_i2c
 )
 
-
+add_subdirectory(sd_spi)
 
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)
 target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/include)
@@ -58,6 +58,7 @@ target_link_libraries(
     ring_buffer
     driver_mpu6050_pico
     pico_stdlib
+    sd_io_pico
 )
 
 target_compile_definitions(
