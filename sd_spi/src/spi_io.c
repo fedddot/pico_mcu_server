@@ -1,97 +1,83 @@
+/*
+ * spi_io.c - ulibSD SPI I/O implementation for Raspberry Pi Pico (RP2040)
+ *
+ * Pin assignments (SPI1):
+ *   SCK  -> GP10
+ *   MOSI -> GP11
+ *   MISO -> GP12
+ *   CS   -> GP13 (manual GPIO — SD cards require CS held low across a full command)
+ */
+
 #include "spi_io.h"
+#include "hardware/gpio.h"
+#include "hardware/spi.h"
+#include "pico/time.h"
 
-void SPI_Init (void) {
+#define SD_SPI_INST     spi1
+#define SD_PIN_SCK      10u
+#define SD_PIN_MOSI     11u
+#define SD_PIN_MISO     12u
+#define SD_PIN_CS       13u
 
-    SIM_SCGC5 |= SIM_SCGC5_PORTD_MASK;
-    /*
-     *SPI0 Clock gate control. 1 clock enabled
-     */
-    SIM_SCGC4 |= SIM_SCGC4_SPI0_MASK;
-    /*
-     * Multiplexing pines
-     */
-    PORTD_PCR0 = PORT_PCR_MUX(1) | PORT_PCR_DSE_MASK & (~PORT_PCR_SRE_MASK); //CS
-    GPIOD_PDDR |= 1 << 0; // Pin is configured as general-purpose output, for the GPIO function.
+#define SPI_FREQ_LOW    400000UL    /* ≤400 kHz required during SD card initialisation */
+#define SPI_FREQ_HIGH   25000000UL  /* 25 MHz for normal operation */
 
-    PORTD_PCR1 = PORT_PCR_MUX(2) | PORT_PCR_DSE_MASK & (~PORT_PCR_SRE_MASK);
-    PORTD_PCR2 = PORT_PCR_MUX(2) | PORT_PCR_DSE_MASK & (~PORT_PCR_SRE_MASK);
-    PORTD_PCR3 = PORT_PCR_MUX(2) | PORT_PCR_PE_MASK  | PORT_PCR_PS_MASK;
+static absolute_time_t s_timer_expiry;
+static bool s_timer_active = false;
 
-    /*
-     * Bit 7 SPIE   = 0 Disables receive and mode fault interrupts
-     * Bit 6 SPE    = 1 Enables the SPI system
-     * Bit 5 SPTIE  = 0 Disables SPI transmit interrupts
-     * Bit 4 MSTR   = 1 Sets the SPI module as a master SPI device
-     * Bit 3 CPOL   = 0 Configures SPI clock as active-high
-     * Bit 2 CPHA   = 0 First edge on SPSCK at start of first data transfer cycle
-     * Bit 1 SSOE   = 1 Determines SS pin function when mode fault enabled
-     * Bit 0 LSBFE  = 0 SPI serial data transfers start with most significant bit
-     */
-    SPI0_C1 = 0x50;
-    /*
-     * Bit 7 PMIE       = 0 SPI hardware match interrupt disabled
-     * Bit 6            = 0 Unimplemented
-     * Bit 5 TXDMAE     = 0 DMA request disabled
-     * Bit 4 MODFEN     = 1 In master mode, ~SS pin function is automatic ~SS output
-     * Bit 3 BIDIROE    = 0 SPI data I/O pin acts as input
-     * Bit 2 RXDMAE     = 0 DMA request disabled
-     * Bit 1 SPISWAI    = 0 SPI clocks operate in wait mode
-     * Bit 0 SPC0       = 0 uses separate pins for data input and output
-     */
-    SPI0_C2 = 0x00;
+void SPI_Init(void) {
+    spi_init(SD_SPI_INST, SPI_FREQ_LOW);
+    spi_set_format(SD_SPI_INST, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
 
-    /*
-     * Bit 7    SPRF    = 0 Flag is set when receive data buffer is full
-     * Bit 6    SPMF    = 0 Flag is set when SPIx_M = receive data buffer
-     * Bit 5    SPTEF   = 0 Flag is set when transmit data buffer is empty
-     * Bit 4    MODF    = 0 Mode fault flag for master mode
-     * Bit 3:0          = 0 Reserved
-     */
-    SPI0_S = 0x00;
+    gpio_set_function(SD_PIN_SCK,  GPIO_FUNC_SPI);
+    gpio_set_function(SD_PIN_MOSI, GPIO_FUNC_SPI);
+    gpio_set_function(SD_PIN_MISO, GPIO_FUNC_SPI);
+
+    /* CS is driven manually so it stays low across multi-byte commands */
+    gpio_init(SD_PIN_CS);
+    gpio_set_dir(SD_PIN_CS, GPIO_OUT);
+    gpio_put(SD_PIN_CS, 1);
 }
 
-BYTE SPI_RW (BYTE d) {
-    while(!(SPI0_S & SPI_S_SPTEF_MASK));
-    SPI0_D = d;
-    while(!(SPI0_S & SPI_S_SPRF_MASK));
-    return((BYTE)(SPI0_D));
+BYTE SPI_RW(BYTE d) {
+    BYTE rx;
+    spi_write_read_blocking(SD_SPI_INST, &d, &rx, 1);
+    return rx;
 }
 
-void SPI_Release (void) {
+void SPI_Release(void) {
     WORD idx;
-    for (idx=512; idx && (SPI_RW(0xFF)!=0xFF); idx--);
+    for (idx = 512; idx && (SPI_RW(0xFF) != 0xFF); idx--);
 }
 
-inline void SPI_CS_Low (void) {
-    GPIOD_PDOR &= ~(1 << 0); //CS LOW
+void SPI_CS_Low(void) {
+    gpio_put(SD_PIN_CS, 0);
 }
 
-inline void SPI_CS_High (void){
-    GPIOD_PDOR |= (1 << 0); //CS HIGH
+void SPI_CS_High(void) {
+    gpio_put(SD_PIN_CS, 1);
 }
 
-inline void SPI_Freq_High (void) {
-    SPI0_BR = 0x00; // 24MHz / 2 = 12MHz
+void SPI_Freq_High(void) {
+    spi_set_baudrate(SD_SPI_INST, SPI_FREQ_HIGH);
 }
 
-inline void SPI_Freq_Low (void) {
-    SPI0_BR = 0x43; // 24MHz / 80 = 300kHz
+void SPI_Freq_Low(void) {
+    spi_set_baudrate(SD_SPI_INST, SPI_FREQ_LOW);
 }
 
-void SPI_Timer_On (WORD ms) {
-    SIM_SCGC5 |= SIM_SCGC5_LPTMR_MASK;  // Make sure clock is enabled
-    LPTMR0_CSR = 0;                     // Reset LPTMR settings
-    LPTMR0_CMR = ms;                    // Set compare value (in ms)
-    // Use 1kHz LPO with no prescaler
-    LPTMR0_PSR = LPTMR_PSR_PCS(1) | LPTMR_PSR_PBYP_MASK;
-    // Start the timer and wait for it to reach the compare value
-    LPTMR0_CSR = LPTMR_CSR_TEN_MASK;
+void SPI_Timer_On(WORD ms) {
+    s_timer_expiry = make_timeout_time_ms(ms);
+    s_timer_active = true;
 }
 
-inline BOOL SPI_Timer_Status (void) {
-    return (!(LPTMR0_CSR & LPTMR_CSR_TCF_MASK) ? TRUE : FALSE);
+BOOL SPI_Timer_Status(void) {
+    if (!s_timer_active) {
+        return FALSE;
+    }
+    return (absolute_time_diff_us(get_absolute_time(), s_timer_expiry) > 0) ? TRUE : FALSE;
 }
 
-inline void SPI_Timer_Off (void) {
-    LPTMR0_CSR = 0;                     // Turn off timer
+void SPI_Timer_Off(void) {
+    s_timer_active = false;
 }

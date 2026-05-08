@@ -16,7 +16,9 @@
 #include "json_message_writer.hpp"
 #include "driver_mpu6050_pico.hpp"
 
+extern "C" {
 #include "sd_io.h"
+}
 
 #ifndef BUFF_SIZE
 #   error "BUFF_SIZE is not defined"
