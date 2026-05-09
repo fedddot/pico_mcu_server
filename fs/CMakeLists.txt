@@ -5,12 +5,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fatfs)
 
-set(FS_BIN_PATH ${CMAKE_CURRENT_LIST_DIR}/src/disk.img)
 set(GENERATED_FS_SRC_DIR ${CMAKE_BINARY_DIR}/fs_generated)
 add_custom_command(
 	OUTPUT ${GENERATED_FS_SRC_DIR}/disk.c
-	COMMAND mkdir -p ${GENERATED_FS_SRC_DIR} && xxd -i ${FS_BIN_PATH} > ${GENERATED_FS_SRC_DIR}/disk.c
-	DEPENDS ${FS_BIN_PATH}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src
+	COMMAND mkdir -p ${GENERATED_FS_SRC_DIR} && xxd -i disk.img > ${GENERATED_FS_SRC_DIR}/disk.c
+	DEPENDS ${CMAKE_CURRENT_LIST_DIR}/src/disk.img
 )
 
 add_custom_target(

@@ -4,11 +4,11 @@
 #include "diskio.h"
 
 extern "C" {
-    extern unsigned char _usr_app_src_fs_src_disk_img[];
-    extern unsigned int _usr_app_src_fs_src_disk_img_len;
+    extern unsigned char disk_img[];
+    extern unsigned int disk_img_len;
 }
 
-#define DISK_SIZE _usr_app_src_fs_src_disk_img_len
+#define DISK_SIZE disk_img_len
 #define BLOCK_SIZE 0x80UL
 #define SECTOR_COUNT (DISK_SIZE / BLOCK_SIZE)
 
@@ -37,13 +37,13 @@ DSTATUS disk_status(BYTE pdrv) {
 
 DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
     enum { SECTOR_SIZE = 512 };
-    std::memcpy(buff, _usr_app_src_fs_src_disk_img + sector * SECTOR_SIZE, count * SECTOR_SIZE);
+    std::memcpy(buff, disk_img + sector * SECTOR_SIZE, count * SECTOR_SIZE);
     return DRESULT::RES_OK;
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
     enum { SECTOR_SIZE = 512 };
-    std::memcpy(_usr_app_src_fs_src_disk_img + sector * SECTOR_SIZE, buff, count * SECTOR_SIZE);
+    std::memcpy(disk_img + sector * SECTOR_SIZE, buff, count * SECTOR_SIZE);
     return DRESULT::RES_OK;
 }
 
