@@ -55,13 +55,23 @@ int main(void) {
     if (f_open(&file, file_path, FA_READ) != FRESULT::FR_OK) {
         throw std::runtime_error("Failed to open file");
     }
-    char buffer[128];
+    char buffer[128] = {'\0'};
     UINT bytes_read;
     if (f_read(&file, buffer, sizeof(buffer) - 1, &bytes_read) != FRESULT::FR_OK) {
         throw std::runtime_error("Failed to read file");
     }
-    buffer[bytes_read] = '\0';
     f_close(&file);
+
+    if (f_open(&file, file_path, FA_WRITE) != FRESULT::FR_OK) {
+        throw std::runtime_error("Failed to open file");
+    }
+    const char* data_to_write = "Hello, Rico!";
+    UINT bytes_written;
+    if (f_write(&file, data_to_write, std::strlen(data_to_write), &bytes_written) != FRESULT::FR_OK) {
+        throw std::runtime_error("Failed to write file");
+    }
+    f_close(&file);
+
     f_unmount(disk_number);
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
