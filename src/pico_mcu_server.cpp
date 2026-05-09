@@ -16,9 +16,7 @@
 #include "json_message_writer.hpp"
 #include "driver_mpu6050_pico.hpp"
 
-extern "C" {
-#include "sd_io.h"
-}
+#include "ff.h"
 
 #ifndef BUFF_SIZE
 #   error "BUFF_SIZE is not defined"
@@ -45,6 +43,8 @@ int main(void) {
 
     stdio_init_all();
     init_uart_listener();
+
+    const auto first_msg = disk_img[0];
 
     SD_DEV sd_card;
     const auto sd_init_res = SD_Init(&sd_card);
