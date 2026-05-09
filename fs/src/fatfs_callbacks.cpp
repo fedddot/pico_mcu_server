@@ -2,7 +2,11 @@
 
 #include "ff.h"
 #include "diskio.h"
-#include "disk.h"
+
+extern "C" {
+    extern unsigned char _usr_app_src_fs_src_disk_img[];
+    extern unsigned int _usr_app_src_fs_src_disk_img_len;
+}
 
 #define DISK_SIZE _usr_app_src_fs_src_disk_img_len
 #define BLOCK_SIZE 0x80UL
