@@ -50,6 +50,19 @@ int main(void) {
     if (f_mount(&fs, disk_number, MOUNT_IMMEDIATELY) != FRESULT::FR_OK) {
         throw std::runtime_error("Failed to mount filesystem");
     }
+    FIL file; 
+    const auto file_path = "work_dir/test.txt";
+    if (f_open(&file, file_path, FA_READ) != FRESULT::FR_OK) {
+        throw std::runtime_error("Failed to open file");
+    }
+    char buffer[128];
+    UINT bytes_read;
+    if (f_read(&file, buffer, sizeof(buffer) - 1, &bytes_read) != FRESULT::FR_OK) {
+        throw std::runtime_error("Failed to read file");
+    }
+    buffer[bytes_read] = '\0';
+    f_close(&file);
+    f_unmount(disk_number);
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
     DriverMpu6050Pico gyro(mpu6050_address_t::MPU6050_ADDRESS_AD0_LOW);
