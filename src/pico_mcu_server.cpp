@@ -44,12 +44,11 @@ int main(void) {
     stdio_init_all();
     init_uart_listener();
 
-    const auto first_msg = disk_img[0];
-
-    SD_DEV sd_card;
-    const auto sd_init_res = SD_Init(&sd_card);
-    if (sd_init_res != SDRESULTS::SD_OK) {
-        throw std::runtime_error("Failed to initialize SD card");
+    const auto disk_number = "0";
+    enum: BYTE { MOUNT_IMMEDIATELY = 1 };
+    FATFS fs;
+    if (f_mount(&fs, disk_number, MOUNT_IMMEDIATELY) != FRESULT::FR_OK) {
+        throw std::runtime_error("Failed to mount filesystem");
     }
 
     // MPU6050_ADDRESS_AD0_LOW = 0xD0, MPU6050_ADDRESS_AD0_HIGH = 0xD2
