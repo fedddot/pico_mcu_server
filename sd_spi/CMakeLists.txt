@@ -6,7 +6,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(ulibsd)
 
 add_library(spi_io_pico INTERFACE)
-target_sources(spi_io_pico INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/spi_io.c)
+target_sources(spi_io_pico INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/spi_io.cpp)
 target_include_directories(spi_io_pico INTERFACE ${ulibsd_SOURCE_DIR})
 target_link_libraries(spi_io_pico INTERFACE hardware_spi hardware_gpio pico_time)
 

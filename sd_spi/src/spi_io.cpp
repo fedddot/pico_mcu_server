@@ -8,10 +8,13 @@
  *   CS   -> GP13 (manual GPIO — SD cards require CS held low across a full command)
  */
 
-#include "spi_io.h"
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include "pico/time.h"
+ 
+extern "C" {
+    #include "spi_io.h"
+}
 
 #define SD_SPI_INST     spi1
 #define SD_PIN_SCK      10u
@@ -26,8 +29,8 @@ static absolute_time_t s_timer_expiry;
 static bool s_timer_active = false;
 
 void SPI_Init(void) {
-    spi_init(SD_SPI_INST, SPI_FREQ_LOW);
-    spi_set_format(SD_SPI_INST, 8, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
+    volatile const int actual_baud = spi_init(SD_SPI_INST, SPI_FREQ_LOW);
+    spi_set_format(SD_SPI_INST, 8, spi_cpol_t::SPI_CPOL_0, spi_cpha_t::SPI_CPHA_0, spi_order_t::SPI_MSB_FIRST);
 
     gpio_set_function(SD_PIN_SCK,  GPIO_FUNC_SPI);
     gpio_set_function(SD_PIN_MOSI, GPIO_FUNC_SPI);
@@ -41,7 +44,7 @@ void SPI_Init(void) {
 
 BYTE SPI_RW(BYTE d) {
     BYTE rx;
-    spi_write_read_blocking(SD_SPI_INST, &d, &rx, 1);
+    volatile const int bytes_wr = spi_write_read_blocking(SD_SPI_INST, &d, &rx, 1);
     return rx;
 }
 
