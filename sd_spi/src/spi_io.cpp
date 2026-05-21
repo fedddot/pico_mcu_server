@@ -11,6 +11,8 @@
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include "pico/time.h"
+#include <cstddef>
+#include <optional>
  
 extern "C" {
     #include "spi_io.h"
@@ -25,12 +27,14 @@ extern "C" {
 #define SPI_FREQ_LOW    400000UL    /* ≤400 kHz required during SD card initialisation */
 #define SPI_FREQ_HIGH   25000000UL  /* 25 MHz for normal operation */
 
-static absolute_time_t s_timer_expiry;
+static absolute_time_t s_absolute_time_when_timer_on(0UL);
+static std::optional<std::size_t> s_timeout_us(0UL);
 static bool s_timer_active = false;
 
 void SPI_Init(void) {
     volatile const int actual_baud = spi_init(SD_SPI_INST, SPI_FREQ_LOW);
     spi_set_format(SD_SPI_INST, 8, spi_cpol_t::SPI_CPOL_0, spi_cpha_t::SPI_CPHA_0, spi_order_t::SPI_MSB_FIRST);
+    spi_set_slave(SD_SPI_INST, false);
 
     gpio_set_function(SD_PIN_SCK,  GPIO_FUNC_SPI);
     gpio_set_function(SD_PIN_MOSI, GPIO_FUNC_SPI);
@@ -70,17 +74,22 @@ void SPI_Freq_Low(void) {
 }
 
 void SPI_Timer_On(WORD ms) {
-    s_timer_expiry = make_timeout_time_ms(ms);
-    s_timer_active = true;
+    s_absolute_time_when_timer_on = get_absolute_time();
+    s_timeout_us = std::make_optional(ms * 1000UL);
 }
 
 BOOL SPI_Timer_Status(void) {
-    if (!s_timer_active) {
+    if (!s_timeout_us.has_value()) {
+        return TRUE;
+    }
+    const auto time_now = get_absolute_time();
+    const auto deadline = s_absolute_time_when_timer_on + s_timeout_us.value();
+    if (time_now > deadline) {
         return FALSE;
     }
-    return (absolute_time_diff_us(get_absolute_time(), s_timer_expiry) > 0) ? TRUE : FALSE;
+    return TRUE;
 }
 
 void SPI_Timer_Off(void) {
-    s_timer_active = false;
+    s_timeout_us.reset();
 }
