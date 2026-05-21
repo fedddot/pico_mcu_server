@@ -30,21 +30,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(mpu6050)
 
-add_library(driver_mpu6050_pico INTERFACE)
-target_sources(driver_mpu6050_pico INTERFACE ${mpu6050_SOURCE_DIR}/src/driver_mpu6050.c)
-target_include_directories(
-    driver_mpu6050_pico
-    INTERFACE
-    ${CMAKE_CURRENT_LIST_DIR}/include
-    ${mpu6050_SOURCE_DIR}/src
-)
-target_link_libraries(
-    driver_mpu6050_pico
-    INTERFACE
-    pico_stdlib
-    hardware_i2c
-)
-
 add_subdirectory(sd_spi)
 add_subdirectory(fs)
 
@@ -53,14 +38,8 @@ target_include_directories(pico_mcu_server PRIVATE ${CMAKE_CURRENT_LIST_DIR}/inc
 target_link_libraries(
     pico_mcu_server
     PRIVATE
-    cobs_frame_reader
-    cobs_frame_writer
-    json_message_reader
-    json_message_writer
-    ring_buffer
-    driver_mpu6050_pico
     pico_stdlib
-    ff
+    sd_io_pico
 )
 
 target_compile_definitions(
