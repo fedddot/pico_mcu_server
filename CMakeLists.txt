@@ -38,7 +38,7 @@ target_link_libraries(
     pico_mcu_server
     PRIVATE
     pico_stdlib
-    sd_io_pico
+    ff
 )
 
 target_compile_definitions(
