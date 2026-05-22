@@ -1,5 +1,7 @@
 #include <cstring>
+
 #include "ff.h"
+
 int main(void) {
     FATFS fs;
     std::memset(&fs, 0, sizeof(fs));

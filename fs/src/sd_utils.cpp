@@ -4,7 +4,9 @@
 #include <stdexcept>
 
 #include "sd_utils.hpp"
+extern "C" {
 #include "sd_io.h"
+}
 
 using namespace sd_utils;
 
