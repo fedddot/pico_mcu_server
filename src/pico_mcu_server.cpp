@@ -4,7 +4,9 @@ int main(void) {
     FATFS fs;
     std::memset(&fs, 0, sizeof(fs));
 
-    f_mount(&fs, "0", 0);   
+    if (FRESULT::FR_OK != f_mount(&fs, "0", 0)) {
+        return -1;
+    }
     
     while (true) {
     }
