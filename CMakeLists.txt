@@ -30,7 +30,6 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(mpu6050)
 
-add_subdirectory(sd_spi)
 add_subdirectory(fs)
 
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)

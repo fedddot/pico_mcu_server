@@ -1,3 +1,5 @@
+add_subdirectory(sd_spi)
+
 FetchContent_Declare(
     fatfs
     GIT_REPOSITORY  https://github.com/abbrev/fatfs.git
