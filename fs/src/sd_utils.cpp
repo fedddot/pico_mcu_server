@@ -10,6 +10,10 @@ extern "C" {
 
 using namespace sd_utils;
 
+enum: std::size_t {
+    BLOCK_SIZE = 512
+};
+
 std::optional<SD_DEV> s_sd_dev(std::nullopt);
 
 void sd_utils::disk_initialize() {
@@ -32,16 +36,27 @@ DiskStatus sd_utils::disk_status() {
 }
 
 void sd_utils::disk_read(std::uint8_t *dst, const std::size_t sector, const std::size_t count) {
-    throw std::runtime_error("Not implemented");
+    if (!s_sd_dev.has_value()) {
+        throw std::runtime_error("SD card not initialized");
+    }
+    for (std::size_t i = 0; i < count; ++i) {
+        if (SD_OK != SD_Read(&s_sd_dev.value(), dst + i * BLOCK_SIZE, sector + i, 0, BLOCK_SIZE)) {
+            throw std::runtime_error("Failed to read from SD card");
+        }
+    }
 }
 void sd_utils::disk_write(const std::uint8_t *src, const std::size_t sector, const std::size_t count) {
-    throw std::runtime_error("Not implemented");
+    if (!s_sd_dev.has_value()) {
+        throw std::runtime_error("SD card not initialized");
+    }
+    for (std::size_t i = 0; i < count; ++i) {
+        if (SD_OK != SD_Write(&s_sd_dev.value(), const_cast<std::uint8_t *>(src + i * BLOCK_SIZE), sector + i)) {
+            throw std::runtime_error("Failed to read from SD card");
+        }
+    }
 }
 
 std::size_t sd_utils::get_block_size() {
-    enum: std::size_t {
-        BLOCK_SIZE = 512
-    };
     return BLOCK_SIZE;
 }
 

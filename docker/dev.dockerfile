@@ -8,7 +8,7 @@ RUN pip install --upgrade --break-system-packages protobuf grpcio-tools
 
 ENV PICO_SDK_PATH=/usr/app/deps/pico-sdk
 WORKDIR ${PICO_SDK_PATH}
-RUN git clone --branch=2.1.1 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH}
+RUN git clone --branch=2.2.0 https://github.com/raspberrypi/pico-sdk.git ${PICO_SDK_PATH}
 RUN git submodule update --init
 
 WORKDIR /usr/app/src
