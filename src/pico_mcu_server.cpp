@@ -11,12 +11,12 @@ int main(void) {
     }
 
     FIL file;
-    if (FRESULT::FR_OK != f_open(&file, "test", FA_WRITE | FA_CREATE_ALWAYS)) {
+    if (FRESULT::FR_OK != f_open(&file, "test.md", FA_READ)) {
         return -1;
     }
-    const auto data = "Hello, World!";
-    UINT bytes_written(0);
-    if (FRESULT::FR_OK != f_write(&file, data, std::strlen(data), &bytes_written)) {
+    char data[20UL] = { '\0' };
+    UINT bytes_read(0);
+    if (FRESULT::FR_OK != f_read(&file, data, sizeof(data), &bytes_read)) {
         return -1;
     }
     if (FRESULT::FR_OK != f_close(&file)) {
