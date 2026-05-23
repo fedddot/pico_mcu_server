@@ -3,16 +3,19 @@
 
 #include "ff.h"
 
-int main(void) {
+PARTITION VolToPart[] = {
+    {0, 0},
+};
+
+int main(void) {    
     FATFS fs;
     std::memset(&fs, 0, sizeof(fs));
-
     if (FRESULT::FR_OK != f_mount(&fs, "0:", 1)) {
         throw std::runtime_error("Failed to mount SD card");
     }
 
     FIL file;
-    if (FRESULT::FR_OK != f_open(&file, "0:test.md", FA_CREATE_ALWAYS | FA_WRITE)) {
+    if (FRESULT::FR_OK != f_open(&file, "0:TEST.MD", FA_CREATE_ALWAYS | FA_WRITE)) {
         throw std::runtime_error("Failed to open file on SD card");
     }
     char data[] = "onetwothree";
