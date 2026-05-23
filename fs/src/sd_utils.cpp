@@ -16,6 +16,12 @@ enum: std::size_t {
 
 std::optional<SD_DEV> s_sd_dev(std::nullopt);
 
+static SD_DEV fix_device_data(const SD_DEV& dev) {
+    SD_DEV new_dev = dev;
+    new_dev.last_sector = 61315072UL - 1UL; 
+    return new_dev;
+}
+
 void sd_utils::disk_initialize() {
     if (s_sd_dev.has_value()) {
         return;
@@ -25,6 +31,7 @@ void sd_utils::disk_initialize() {
     if (SD_OK != SD_Init(&dev)) {
         throw std::runtime_error("Failed to initialize SD card");
     }
+    dev = fix_device_data(dev);
     s_sd_dev.emplace(dev);
 }
 

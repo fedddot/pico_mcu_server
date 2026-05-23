@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.12)
 set(PICO_SDK_FETCH_FROM_GIT ON)
 set(PICO_CXX_ENABLE_EXCEPTIONS 1)
 set(PICO_CXX_ENABLE_RTTI 1)
+set(PICO_DEOPTIMIZED_DEBUG 1)
 
 include(external/pico_sdk_import.cmake)
 
