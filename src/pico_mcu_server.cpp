@@ -3,10 +3,6 @@
 
 #include "ff.h"
 
-PARTITION VolToPart[] = {
-    {0, 0},
-};
-
 int main(void) {    
     FATFS fs;
     std::memset(&fs, 0, sizeof(fs));
