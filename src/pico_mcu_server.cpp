@@ -1,23 +1,30 @@
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
 
 #include "ff.h"
 
-int main(void) {    
+int main(void) {
     FATFS fs;
     std::memset(&fs, 0, sizeof(fs));
-    if (FRESULT::FR_OK != f_mount(&fs, "0:", 1)) {
+    volatile auto disk_status = f_mount(&fs, "0:", 1);
+    if (FRESULT::FR_OK != disk_status) {
         throw std::runtime_error("Failed to mount SD card");
     }
 
     FIL file;
-    if (FRESULT::FR_OK != f_open(&file, "0:TEST.MD", FA_CREATE_ALWAYS | FA_WRITE)) {
-        throw std::runtime_error("Failed to open file on SD card");
+    volatile auto open_res = f_open(&file, "0:TEST1.TXT", FA_WRITE | FA_CREATE_ALWAYS);
+
+    char data[] = "test data";
+    UINT rw_size(0);
+    if (FRESULT::FR_OK != f_write(&file, data, sizeof(data), &rw_size)) {
+        throw std::runtime_error("Failed to write to file on SD card");
     }
-    char data[] = "onetwothree";
-    UINT bytes_write(0);
-    if (FRESULT::FR_OK != f_write(&file, data, sizeof(data), &bytes_write)) {
-        throw std::runtime_error("Failed to read from file on SD card");
+    if (rw_size != sizeof(data)) {
+        throw std::runtime_error("Failed to write all data to file on SD card");
+    }
+    if (FRESULT::FR_OK != f_sync(&file)) {
+        throw std::runtime_error("Failed to sync file on SD card");
     }
     if (FRESULT::FR_OK != f_close(&file)) {
         throw std::runtime_error("Failed to close file on SD card");
