@@ -131,12 +131,6 @@ namespace sd_spi_driver {
         }
 
         SdType get_sd_type() const {
-            if (1 != send_command(SdCommand::CMD0, 0)) {
-                throw std::runtime_error("Failed to initialize SD card");
-            }
-            for (std::size_t n = 0; n < 100; n++) {
-                m_trancieve_byte(0xFF);
-            }
             if (1 != send_command(SdCommand::CMD8, 0x000001AA)) {
                 return SdType::SD1;
             }
