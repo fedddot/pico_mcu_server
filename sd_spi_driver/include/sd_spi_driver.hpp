@@ -49,12 +49,15 @@ namespace sd_spi_driver {
             for (std::size_t i = 0; i < 10; ++i) {
                 m_trancieve_byte(0xFF);
             }
+            m_delay(500);
 
             if (1 != send_command(SdCommand::CMD0, 0)) {
                 throw std::runtime_error("Failed to initialize SD card");
             }
-
+            
             m_sd_type = get_sd_type();
+
+            m_set_spi_speed(SpiSpeed::HIGH_SPEED);
         }
         SdSpiDriver(const SdSpiDriver&) = default;
         SdSpiDriver& operator=(const SdSpiDriver&) = default;
@@ -102,7 +105,11 @@ namespace sd_spi_driver {
         }
 
         std::uint8_t send_command(const SdCommand cmd, std::uint32_t arg) const {
+            m_chip_selector(ChipSelectState::UNSELECTED);
+            m_trancieve_byte(0xFF);
             m_chip_selector(ChipSelectState::SELECTED);
+            m_trancieve_byte(0xFF);
+
             m_trancieve_byte(static_cast<std::uint8_t>(cmd));
             m_trancieve_byte((std::uint8_t)(arg >> 24));
             m_trancieve_byte((std::uint8_t)(arg >> 16));
@@ -120,12 +127,17 @@ namespace sd_spi_driver {
                 }
                 --attempts;
             }
-            m_chip_selector(ChipSelectState::UNSELECTED);
             return res;
         }
 
         SdType get_sd_type() const {
-            if (1 != send_command(SdCommand::CMD8, 0x1AA)) {
+            if (1 != send_command(SdCommand::CMD0, 0)) {
+                throw std::runtime_error("Failed to initialize SD card");
+            }
+            for (std::size_t n = 0; n < 100; n++) {
+                m_trancieve_byte(0xFF);
+            }
+            if (1 != send_command(SdCommand::CMD8, 0x000001AA)) {
                 return SdType::SD1;
             }
             std::array<std::uint8_t, 4UL> ocr;
