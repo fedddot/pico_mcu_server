@@ -12,18 +12,12 @@ int main(void) {
     }
 
     FIL file;
-    volatile auto open_res = f_open(&file, "0:TEST1.TXT", FA_WRITE | FA_CREATE_ALWAYS);
+    volatile auto open_res = f_open(&file, "0:NEW_FILE", FA_READ);
 
-    char data[] = "test data";
+    char data[128] = { '\0' };
     UINT rw_size(0);
-    if (FRESULT::FR_OK != f_write(&file, data, sizeof(data), &rw_size)) {
+    if (FRESULT::FR_OK != f_read(&file, data, sizeof(data), &rw_size)) {
         throw std::runtime_error("Failed to write to file on SD card");
-    }
-    if (rw_size != sizeof(data)) {
-        throw std::runtime_error("Failed to write all data to file on SD card");
-    }
-    if (FRESULT::FR_OK != f_sync(&file)) {
-        throw std::runtime_error("Failed to sync file on SD card");
     }
     if (FRESULT::FR_OK != f_close(&file)) {
         throw std::runtime_error("Failed to close file on SD card");

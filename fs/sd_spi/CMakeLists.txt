@@ -11,6 +11,6 @@ target_include_directories(spi_io_pico INTERFACE ${ulibsd_SOURCE_DIR})
 target_link_libraries(spi_io_pico INTERFACE hardware_spi hardware_gpio pico_time)
 
 add_library(sd_io_pico INTERFACE)
-target_sources(sd_io_pico INTERFACE ${ulibsd_SOURCE_DIR}/sd_io.c)
+target_sources(sd_io_pico INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/sd_io.c)
 target_include_directories(sd_io_pico INTERFACE ${ulibsd_SOURCE_DIR})
 target_link_libraries(sd_io_pico INTERFACE spi_io_pico)
