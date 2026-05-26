@@ -1,93 +1,51 @@
-#ifndef	PICO_AXIS_CONTROLLER_HPP
-#define	PICO_AXIS_CONTROLLER_HPP
+#ifndef	SD_SPI_DRIVER_HPP
+#define	SD_SPI_DRIVER_HPP
 
-#include <map>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <stdexcept>
 
-#include "pico/time.h"
-
-#include "axes_controller.hpp"
-#include "manager_instance.hpp"
-#include "movement_manager_data.hpp"
-#include "pico_axis_controller_config.hpp"
-#include "pico_stepper_motor.hpp"
-
-namespace pico {
-    class PicoAxisController: public manager::AxesController {
+namespace sd_spi_driver {
+    template <std::size_t BlockSize = 512UL>
+    class SdSpiDriver {
     public:
-        PicoAxisController(const PicoAxesControllerConfig& config);
-        PicoAxisController(const PicoAxisController&) = delete;
-        PicoAxisController& operator=(const PicoAxisController&) = delete;
-        ~PicoAxisController() noexcept override;
+        enum class ChipSelectState: int {
+            SELECTED = 0,
+            UNSELECTED = 1
+        };
+        using SpiInit = std::function<void(void)>;
+        using SetSpiSpeed = std::function<void(const std::size_t speed)>;
+        using TrancieveByte = std::function<std::uint8_t(const std::uint8_t byte)>;
+        using Delay = std::function<void(const std::size_t ms)>;
+        using ChipSelector = std::function<void(const ChipSelectState state)>;
+
+        SdSpiDriver(
+            const SpiInit& spi_init,
+            const SetSpiSpeed& set_spi_speed,
+            const TrancieveByte& trancieve_byte,
+            const Delay& delay,
+            const ChipSelector& chip_selector
+        ): m_spi_init(spi_init), m_set_spi_speed(set_spi_speed), m_trancieve_byte(trancieve_byte), m_delay(delay), m_chip_selector(chip_selector) {
+            if (!m_spi_init || !m_set_spi_speed || !m_trancieve_byte || !m_delay || !m_chip_selector) {
+                throw std::invalid_argument("invalid argument(s) provided to SdSpiDriver constructor");
+            }
+            m_spi_init();
+        }
+        SdSpiDriver(const SdSpiDriver&) = default;
+        SdSpiDriver& operator=(const SdSpiDriver&) = default;
+        ~SdSpiDriver() noexcept;
         
-        void step(const manager::Axis& axis, const manager::Direction& direction, const double duration) override;
-        void enable() override;
-        void disable() override;
-        double get_step_length(const manager::Axis& axis) const override;
+        std::array<std::size_t, BlockSize> read_block(const std::size_t block_address) const;
+        void write_block(const std::size_t block_address, const std::array<std::size_t, BlockSize>& data) const;
     private:
-        PicoAxesControllerConfig m_config;
-        using Steppers = std::map<manager::Axis, manager::Instance<PicoStepper>>;
-        Steppers m_steppers;
-
-        static void disable_steppers(Steppers *steppers);
-        static void enable_steppers(Steppers *steppers);
-        static Steppers create_steppers(const PicoAxesControllerConfig& config);
+        SpiInit m_spi_init;
+        SetSpiSpeed m_set_spi_speed;
+        TrancieveByte m_trancieve_byte;
+        Delay m_delay;
+        ChipSelector m_chip_selector;
     };
-
-    inline PicoAxisController::PicoAxisController(const PicoAxesControllerConfig& config): m_config(config), m_steppers(create_steppers(config)) {
-        disable_steppers(&m_steppers);
-    }
-
-    inline PicoAxisController::~PicoAxisController() noexcept {
-        disable_steppers(&m_steppers);
-    }
-
-    inline void PicoAxisController::step(const manager::Axis& axis, const manager::Direction& direction, const double duration) {
-        auto& descriptor = m_steppers.at(axis);
-        const auto rotational_dir = m_config.axis_config(axis).directions_mapping.at(direction);
-        const auto duration_ms = static_cast<uint32_t>(1000.0 * duration);
-
-        m_steppers.at(axis).get().step(rotational_dir);
-        sleep_ms(duration_ms);
-    }
-
-    inline void PicoAxisController::enable() {
-        enable_steppers(&m_steppers);
-    }
-
-    inline void PicoAxisController::disable() {
-        disable_steppers(&m_steppers);
-    }
-
-    inline double PicoAxisController::get_step_length(const manager::Axis& axis) const {
-        return m_config.axis_config(axis).step_length;
-    }
-
-    inline void PicoAxisController::disable_steppers(Steppers *steppers) {
-        for (auto& [axis, stepper_instance]: *steppers) {
-            stepper_instance.get().set_state(PicoStepper::State::DISABLED);
-        }
-    }
-
-    inline void PicoAxisController::enable_steppers(Steppers *steppers) {
-        for (auto& [axis, stepper_instance]: *steppers) {
-            stepper_instance.get().set_state(PicoStepper::State::ENABLED);
-        }
-    }
-
-    inline typename PicoAxisController::Steppers PicoAxisController::create_steppers(const PicoAxesControllerConfig& config) {
-        using namespace manager;
-        Steppers steppers;
-        for (const auto& axis: {Axis::X, Axis::Y, Axis::Z}) {
-            const auto stepper_config = config.axis_config(axis).stepper_config;
-            steppers.insert(
-                {
-                    axis,
-                    Instance<PicoStepper>(new PicoStepper(stepper_config))
-                }
-            );
-        }
-        return steppers;
-    }
 }
 
-#endif // PICO_AXIS_CONTROLLER_HPP
+#endif // SD_SPI_DRIVER_HPP
