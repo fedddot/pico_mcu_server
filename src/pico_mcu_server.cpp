@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "ff.h"
+#include "sd_spi_driver.hpp"
 
 int main(void) {
     FATFS fs;

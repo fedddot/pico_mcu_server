@@ -31,6 +31,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(mpu6050)
 
+add_subdirectory(sd_spi_driver)
 add_subdirectory(fs)
 
 add_executable(pico_mcu_server ${CMAKE_CURRENT_LIST_DIR}/src/pico_mcu_server.cpp)
@@ -40,6 +41,7 @@ target_link_libraries(
     PRIVATE
     pico_stdlib
     ff
+    sd_spi_driver
 )
 
 target_compile_definitions(
