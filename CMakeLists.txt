@@ -50,3 +50,5 @@ target_compile_definitions(
     -DBUFF_SIZE=512UL
     -DPICO_IPC_BAUD=9600UL
 )
+
+target_compile_options(pico_mcu_server PRIVATE -O0)

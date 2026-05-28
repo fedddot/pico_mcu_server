@@ -8,18 +8,16 @@
 
 #include "sd_spi_driver.hpp"
 
-#define BLOCK_SIZE 512UL
-
 using namespace sd_spi_driver;
 
 static void sd_spi_init(void);
-static void sd_set_spi_speed(const SdSpiDriver<BLOCK_SIZE>::SpiSpeed speed);
+static void sd_set_spi_speed(const SdSpiDriver::SpiSpeed speed);
 static std::uint8_t sd_trancieve_byte(const std::uint8_t byte);
 static void sd_delay(const std::size_t ms);
-static void sd_chip_selector(const SdSpiDriver<BLOCK_SIZE>::ChipSelectState state);
+static void sd_chip_selector(const SdSpiDriver::ChipSelectState state);
 
 int main(void) {
-    SdSpiDriver<BLOCK_SIZE> sd_driver(
+    SdSpiDriver sd_driver(
         sd_spi_init,
         sd_set_spi_speed,
         sd_trancieve_byte,
@@ -41,7 +39,7 @@ int main(void) {
 void sd_spi_init(void) {
     volatile const int actual_baud = spi_init(
         SD_SPI_INST,
-        static_cast<uint>(SdSpiDriver<BLOCK_SIZE>::SpiSpeed::LOW_SPEED)
+        static_cast<uint>(SdSpiDriver::SpiSpeed::LOW_SPEED)
     );
     spi_set_format(SD_SPI_INST, 8, spi_cpol_t::SPI_CPOL_0, spi_cpha_t::SPI_CPHA_0, spi_order_t::SPI_MSB_FIRST);
     spi_set_slave(SD_SPI_INST, false);
@@ -55,7 +53,7 @@ void sd_spi_init(void) {
     gpio_put(SD_PIN_CS, 1);
 }
 
-void sd_set_spi_speed(const SdSpiDriver<BLOCK_SIZE>::SpiSpeed speed) {
+void sd_set_spi_speed(const SdSpiDriver::SpiSpeed speed) {
     spi_set_baudrate(SD_SPI_INST, static_cast<uint>(speed));
 }
 
@@ -69,12 +67,12 @@ void sd_delay(const std::size_t ms) {
     sleep_ms(ms);
 }
 
-void sd_chip_selector(const SdSpiDriver<BLOCK_SIZE>::ChipSelectState state) {
+void sd_chip_selector(const SdSpiDriver::ChipSelectState state) {
     switch (state) {
-    case SdSpiDriver<BLOCK_SIZE>::ChipSelectState::SELECTED:
+    case SdSpiDriver::ChipSelectState::SELECTED:
         gpio_put(SD_PIN_CS, 0);
         break;
-    case SdSpiDriver<BLOCK_SIZE>::ChipSelectState::UNSELECTED:
+    case SdSpiDriver::ChipSelectState::UNSELECTED:
         gpio_put(SD_PIN_CS, 1);
         break;
     default:

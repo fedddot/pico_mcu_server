@@ -8,15 +8,12 @@
 #include <stdexcept>
 
 namespace sd_spi_driver {
-    template <std::size_t BlockSize = 512UL>
     class SdSpiDriver {
-    private:
-        enum class SdType: int {
-            SD1,
-            SD2,
-            MMC
-        };
     public:
+        enum: std::size_t {
+            BLOCK_SIZE = 512UL,
+            RESPONSE_MAX_ATTEMPTS = 100UL
+        };
         enum class ChipSelectState: int {
             SELECTED = 0,
             UNSELECTED = 1
@@ -46,16 +43,22 @@ namespace sd_spi_driver {
             // Initial handshake
             m_set_spi_speed(SpiSpeed::LOW_SPEED);
             m_chip_selector(ChipSelectState::UNSELECTED);
+
             for (std::size_t i = 0; i < 10; ++i) {
                 m_trancieve_byte(0xFF);
             }
             m_delay(500);
 
-            if (1 != send_command(SdCommand::CMD0, 0)) {
-                throw std::runtime_error("Failed to initialize SD card");
+            m_chip_selector(ChipSelectState::SELECTED);
+
+            send_command(SdCommand::CMD0, 0);
+            std::array<std::uint8_t, 1> response = read_response<1>(RESPONSE_MAX_ATTEMPTS);
+            if (response[0] != 1) {
+                throw std::runtime_error("Failed to initialize SD card: CMD0 did not return expected response");
             }
-            
             m_sd_type = get_sd_type();
+
+            m_chip_selector(ChipSelectState::UNSELECTED);
 
             m_set_spi_speed(SpiSpeed::HIGH_SPEED);
         }
@@ -63,15 +66,14 @@ namespace sd_spi_driver {
         SdSpiDriver& operator=(const SdSpiDriver&) = default;
         ~SdSpiDriver() noexcept;
         
-        std::array<std::size_t, BlockSize> read_block(const std::size_t block_address) const;
-        void write_block(const std::size_t block_address, const std::array<std::size_t, BlockSize>& data) const;
+        std::array<std::size_t, BLOCK_SIZE> read_block(const std::size_t block_address) const;
+        void write_block(const std::size_t block_address, const std::array<std::size_t, BLOCK_SIZE>& data) const;
     private:
-        SpiInit m_spi_init;
-        SetSpiSpeed m_set_spi_speed;
-        TrancieveByte m_trancieve_byte;
-        Delay m_delay;
-        ChipSelector m_chip_selector;
-        SdType m_sd_type;
+        enum class SdType: int {
+            SD1,
+            SD2,
+            MMC
+        };
 
         enum class SdCommand: std::uint8_t {
             CMD0 = 0x40 + 0,
@@ -86,6 +88,13 @@ namespace sd_spi_driver {
             CMD58 = 0x40 + 58,
             ACMD41 = 0x40 + 41
         };
+
+        SpiInit m_spi_init;
+        SetSpiSpeed m_set_spi_speed;
+        TrancieveByte m_trancieve_byte;
+        Delay m_delay;
+        ChipSelector m_chip_selector;
+        SdType m_sd_type;
 
         static std::uint8_t calculate_crc(const SdCommand cmd, std::uint32_t arg) {
             (void)arg;
@@ -104,41 +113,41 @@ namespace sd_spi_driver {
             }
         }
 
-        std::uint8_t send_command(const SdCommand cmd, std::uint32_t arg) const {
-            m_chip_selector(ChipSelectState::UNSELECTED);
-            m_trancieve_byte(0xFF);
-            m_chip_selector(ChipSelectState::SELECTED);
-            m_trancieve_byte(0xFF);
-
+        void send_command(const SdCommand cmd, std::uint32_t arg) const {
             m_trancieve_byte(static_cast<std::uint8_t>(cmd));
             m_trancieve_byte((std::uint8_t)(arg >> 24));
             m_trancieve_byte((std::uint8_t)(arg >> 16));
             m_trancieve_byte((std::uint8_t)(arg >> 8 ));
             m_trancieve_byte((std::uint8_t)(arg >> 0 ));
             m_trancieve_byte(calculate_crc(cmd, arg));
+        }
 
-            enum: std::size_t { ATTEMPTS_NUMBER = 50UL };
-            std::size_t attempts = ATTEMPTS_NUMBER;
-            std::uint8_t res(0xFF);
-            while (attempts) {
-                res = m_trancieve_byte(0xFF);
-                if (res != 0xFF) {
+        template <std::size_t ResponseLength>
+        std::array<std::uint8_t, ResponseLength> read_response(const std::size_t read_attempts) const {
+            if (ResponseLength == 0) {
+                throw std::invalid_argument("response should contain at least 1 byte");
+            }
+            std::array<std::uint8_t, ResponseLength> response;
+            for (std::size_t attempt = 0; attempt < read_attempts; ++attempt) {
+                const auto byte = m_trancieve_byte(0xFF);
+                if ((byte & 0x80) == 0) {
+                    response[0] = byte;
                     break;
                 }
-                --attempts;
             }
-            return res;
+            for (std::size_t n = 1; n < ResponseLength; n++) {
+                response[n] = m_trancieve_byte(0xFF);
+            }
+            return response;
         }
 
         SdType get_sd_type() const {
-            if (1 != send_command(SdCommand::CMD8, 0x000001AA)) {
+            send_command(SdCommand::CMD8, 0x000001AA);
+            const auto response = read_response<5>(RESPONSE_MAX_ATTEMPTS);
+            if (1 != response[0]) {
                 return SdType::SD1;
             }
-            std::array<std::uint8_t, 4UL> ocr;
-            for (std::size_t n = 0; n < ocr.size(); n++) {
-                ocr[n] = m_trancieve_byte(0xFF);
-            }
-            if ((ocr[2] != 0x01) && (ocr[3] != 0xAA)) {
+            if ((response[3] != 0x01) && (response[4] != 0xAA)) {
                 throw std::runtime_error("Failed to initialize SD card: CMD8 returned invalid response");
             }
             return SdType::SD2;
