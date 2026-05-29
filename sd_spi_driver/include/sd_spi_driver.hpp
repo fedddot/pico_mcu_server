@@ -100,6 +100,11 @@ namespace sd_spi_driver {
 
         template <std::size_t ResponseLength>
         std::array<std::uint8_t, ResponseLength> send_command(const SdCommand cmd, std::uint32_t arg, const std::size_t read_attempts) const {
+            m_chip_selector(ChipSelectState::UNSELECTED);
+            m_trancieve_byte(0xFF);
+            m_chip_selector(ChipSelectState::SELECTED);
+            m_trancieve_byte(0xFF);
+
             m_trancieve_byte(static_cast<std::uint8_t>(cmd));
             m_trancieve_byte((std::uint8_t)(arg >> 24));
             m_trancieve_byte((std::uint8_t)(arg >> 16));
@@ -159,20 +164,16 @@ namespace sd_spi_driver {
         void init_sd_v2() {
             m_sd_type = SdType::SD2;
             std::array<std::uint8_t, 1> acmd41_response;
-            for (std::size_t attempt = 0; attempt < RESPONSE_MAX_ATTEMPTS; ++attempt) {
-                send_command<1>(SdCommand::CMD55, 0, RESPONSE_MAX_ATTEMPTS);
+            while (true) {
+                const auto cmd55_response = send_command<1>(SdCommand::CMD55, 0, RESPONSE_MAX_ATTEMPTS);
                 acmd41_response = send_command<1>(SdCommand::ACMD41, 1UL << 30, RESPONSE_MAX_ATTEMPTS);
                 if (acmd41_response[0] == 0x00) {
                     break;
                 } else if (acmd41_response[0] & 0x01) {
-                    m_delay(10);
                     continue;
                 } else {
                     throw std::runtime_error("Unsupported SD card type");
                 }
-            }
-            if (acmd41_response[0] != 0x00) {
-                throw std::runtime_error("Failed to initialize SD card: ACMD41 did not return expected response");
             }
             const auto cmd58_response = send_command<5>(SdCommand::CMD58, 0, RESPONSE_MAX_ATTEMPTS);
             if (cmd58_response[0] != 0x00) {
