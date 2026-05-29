@@ -164,16 +164,17 @@ namespace sd_spi_driver {
         void init_sd_v2() {
             m_sd_type = SdType::SD2;
             std::array<std::uint8_t, 1> acmd41_response;
-            while (true) {
+            std::size_t attempt = 1000UL;
+            while (attempt--) {
                 const auto cmd55_response = send_command<1>(SdCommand::CMD55, 0, RESPONSE_MAX_ATTEMPTS);
-                acmd41_response = send_command<1>(SdCommand::ACMD41, 1UL << 30, RESPONSE_MAX_ATTEMPTS);
+                if (cmd55_response[0] > 1) {
+                    continue;
+                }
+                acmd41_response = send_command<1>(SdCommand::ACMD41, 0x40000000, RESPONSE_MAX_ATTEMPTS);
                 if (acmd41_response[0] == 0x00) {
                     break;
-                } else if (acmd41_response[0] & 0x01) {
-                    continue;
-                } else {
-                    throw std::runtime_error("Unsupported SD card type");
                 }
+                continue;
             }
             const auto cmd58_response = send_command<5>(SdCommand::CMD58, 0, RESPONSE_MAX_ATTEMPTS);
             if (cmd58_response[0] != 0x00) {
