@@ -40,27 +40,7 @@ namespace sd_spi_driver {
             }
             m_spi_init();
 
-            // Initial handshake
-            m_set_spi_speed(SpiSpeed::LOW_SPEED);
-            m_chip_selector(ChipSelectState::UNSELECTED);
-
-            for (std::size_t i = 0; i < 10; ++i) {
-                m_trancieve_byte(0xFF);
-            }
-            m_delay(500);
-
-            m_chip_selector(ChipSelectState::SELECTED);
-
-            send_command(SdCommand::CMD0, 0);
-            std::array<std::uint8_t, 1> response = read_response<1>(RESPONSE_MAX_ATTEMPTS);
-            if (response[0] != 1) {
-                throw std::runtime_error("Failed to initialize SD card: CMD0 did not return expected response");
-            }
-            m_sd_type = get_sd_type();
-
-            m_chip_selector(ChipSelectState::UNSELECTED);
-
-            m_set_spi_speed(SpiSpeed::HIGH_SPEED);
+            init_card();
         }
         SdSpiDriver(const SdSpiDriver&) = default;
         SdSpiDriver& operator=(const SdSpiDriver&) = default;
@@ -73,6 +53,10 @@ namespace sd_spi_driver {
             SD1,
             SD2,
             MMC
+        };
+        enum class AddressMode: int {
+            BYTE_ADDRESSING,
+            BLOCK_ADDRESSING
         };
 
         enum class SdCommand: std::uint8_t {
@@ -95,6 +79,7 @@ namespace sd_spi_driver {
         Delay m_delay;
         ChipSelector m_chip_selector;
         SdType m_sd_type;
+        AddressMode m_address_mode;
 
         static std::uint8_t calculate_crc(const SdCommand cmd, std::uint32_t arg) {
             (void)arg;
@@ -113,21 +98,19 @@ namespace sd_spi_driver {
             }
         }
 
-        void send_command(const SdCommand cmd, std::uint32_t arg) const {
+        template <std::size_t ResponseLength>
+        std::array<std::uint8_t, ResponseLength> send_command(const SdCommand cmd, std::uint32_t arg, const std::size_t read_attempts) const {
             m_trancieve_byte(static_cast<std::uint8_t>(cmd));
             m_trancieve_byte((std::uint8_t)(arg >> 24));
             m_trancieve_byte((std::uint8_t)(arg >> 16));
             m_trancieve_byte((std::uint8_t)(arg >> 8 ));
             m_trancieve_byte((std::uint8_t)(arg >> 0 ));
             m_trancieve_byte(calculate_crc(cmd, arg));
-        }
 
-        template <std::size_t ResponseLength>
-        std::array<std::uint8_t, ResponseLength> read_response(const std::size_t read_attempts) const {
-            if (ResponseLength == 0) {
-                throw std::invalid_argument("response should contain at least 1 byte");
-            }
             std::array<std::uint8_t, ResponseLength> response;
+            if (ResponseLength == 0) {
+                return response;
+            }
             for (std::size_t attempt = 0; attempt < read_attempts; ++attempt) {
                 const auto byte = m_trancieve_byte(0xFF);
                 if ((byte & 0x80) == 0) {
@@ -141,16 +124,70 @@ namespace sd_spi_driver {
             return response;
         }
 
-        SdType get_sd_type() const {
-            send_command(SdCommand::CMD8, 0x000001AA);
-            const auto response = read_response<5>(RESPONSE_MAX_ATTEMPTS);
-            if (1 != response[0]) {
-                return SdType::SD1;
+        void init_card() {
+            m_set_spi_speed(SpiSpeed::LOW_SPEED);
+            m_chip_selector(ChipSelectState::UNSELECTED);
+            for (std::size_t i = 0; i < 10; ++i) {
+                m_trancieve_byte(0xFF);
             }
-            if ((response[3] != 0x01) && (response[4] != 0xAA)) {
-                throw std::runtime_error("Failed to initialize SD card: CMD8 returned invalid response");
+
+            m_chip_selector(ChipSelectState::SELECTED);
+
+            const auto cmd0_response = send_command<1>(SdCommand::CMD0, 0, RESPONSE_MAX_ATTEMPTS);
+            if (cmd0_response[0] != 1) {
+                throw std::runtime_error("Failed to initialize SD card: CMD0 did not return expected response");
             }
-            return SdType::SD2;
+
+            const auto cmd8_response = send_command<5>(SdCommand::CMD8, 0x000001AA, RESPONSE_MAX_ATTEMPTS);
+            if (1 != cmd8_response[0]) {
+                init_sd_v1();
+                return;
+            }
+            if ((cmd8_response[3] == 0x01) && (cmd8_response[4] == 0xAA)) {
+                init_sd_v2();
+                return;
+            }
+            throw std::runtime_error("Unsupported SD card type");
+        }
+
+        void init_sd_v1() {
+            m_sd_type = SdType::SD1;
+            m_address_mode = AddressMode::BYTE_ADDRESSING;
+            throw std::runtime_error("NOT IMPLEMENTED YET");
+        }
+
+        void init_sd_v2() {
+            m_sd_type = SdType::SD2;
+            std::array<std::uint8_t, 1> acmd41_response;
+            for (std::size_t attempt = 0; attempt < RESPONSE_MAX_ATTEMPTS; ++attempt) {
+                send_command<1>(SdCommand::CMD55, 0, RESPONSE_MAX_ATTEMPTS);
+                acmd41_response = send_command<1>(SdCommand::ACMD41, 1UL << 30, RESPONSE_MAX_ATTEMPTS);
+                if (acmd41_response[0] == 0x00) {
+                    break;
+                } else if (acmd41_response[0] & 0x01) {
+                    m_delay(10);
+                    continue;
+                } else {
+                    throw std::runtime_error("Unsupported SD card type");
+                }
+            }
+            if (acmd41_response[0] != 0x00) {
+                throw std::runtime_error("Failed to initialize SD card: ACMD41 did not return expected response");
+            }
+            const auto cmd58_response = send_command<5>(SdCommand::CMD58, 0, RESPONSE_MAX_ATTEMPTS);
+            if (cmd58_response[0] != 0x00) {
+                throw std::runtime_error("Failed to initialize SD card: CMD58 did not return expected response");
+            }
+            const auto ocr = cmd58_response[1];
+            if (ocr & 0x40) {
+                m_address_mode = AddressMode::BLOCK_ADDRESSING;
+            } else {
+                m_address_mode = AddressMode::BYTE_ADDRESSING;
+            }
+            const auto cmd16_response = send_command<1>(SdCommand::CMD16, BLOCK_SIZE, RESPONSE_MAX_ATTEMPTS);
+            if (cmd16_response[0] != 0x00) {
+                throw std::runtime_error("Failed to initialize SD card: CMD16 did not return expected response");
+            }
         }
     };
 }
