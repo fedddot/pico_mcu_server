@@ -199,6 +199,14 @@ namespace sd_spi_driver {
             if (cmd9_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card CSD register: CMD9 did not return expected response");
             }
+            std::size_t device_size;
+            device_size = static_cast<std::size_t>(cmd9_response[7]) & std::size_t(0xFF);
+            device_size <<= 22-6-8-8;
+            device_size |= static_cast<std::size_t>(cmd9_response[8]) & std::size_t(0xFF);
+            device_size <<= 22-6-8;
+            device_size |= static_cast<std::size_t>(cmd9_response[9]) & std::size_t(0x3F);
+            device_size <<= 22-6;
+            m_total_blocks = (device_size + 1) * 1024;
         }
     };
 }
