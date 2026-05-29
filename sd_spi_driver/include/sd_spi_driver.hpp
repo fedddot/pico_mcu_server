@@ -80,6 +80,7 @@ namespace sd_spi_driver {
         ChipSelector m_chip_selector;
         SdType m_sd_type;
         AddressMode m_address_mode;
+        std::size_t m_total_blocks;
 
         static std::uint8_t calculate_crc(const SdCommand cmd, std::uint32_t arg) {
             (void)arg;
@@ -189,6 +190,14 @@ namespace sd_spi_driver {
             const auto cmd16_response = send_command<1>(SdCommand::CMD16, BLOCK_SIZE, RESPONSE_MAX_ATTEMPTS);
             if (cmd16_response[0] != 0x00) {
                 throw std::runtime_error("Failed to initialize SD card: CMD16 did not return expected response");
+            }
+            read_csd();
+        }
+
+        void read_csd() {
+            const auto cmd9_response = send_command<17>(SdCommand::CMD9, 0, RESPONSE_MAX_ATTEMPTS);
+            if (cmd9_response[0] != 0x00) {
+                throw std::runtime_error("Failed to read SD card CSD register: CMD9 did not return expected response");
             }
         }
     };
