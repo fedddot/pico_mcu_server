@@ -215,13 +215,13 @@ namespace sd_spi_driver {
             }
             const auto *csd = cmd9_response.data() + csd_start_index;
             std::size_t device_size;
-            device_size = static_cast<std::size_t>(csd[7]) & std::size_t(0xFF);
-            device_size <<= 22-6-8-8;
-            device_size |= static_cast<std::size_t>(csd[8]) & std::size_t(0xFF);
-            device_size <<= 22-6-8;
-            device_size |= static_cast<std::size_t>(csd[9]) & std::size_t(0x3F);
-            device_size <<= 22-6;
-            m_total_blocks = (device_size + 1) * 1024;
+            device_size = static_cast<std::size_t>(csd[8]) & std::size_t(0x3F);
+            device_size <<= 8;
+            device_size |= static_cast<std::size_t>(csd[9]) & std::size_t(0xFF);
+            device_size <<= 8;
+            device_size |= static_cast<std::size_t>(csd[10]) & std::size_t(0xFF);
+            device_size = (device_size + 1) * 512 * 1024;
+            m_total_blocks = device_size / BLOCK_SIZE;
         }
     };
 }
