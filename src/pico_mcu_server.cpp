@@ -24,6 +24,8 @@ int main(void) {
         sd_delay,
         sd_chip_selector
     );
+    const auto block_data0 = sd_driver.read_block(0);
+    const auto block_data1 = sd_driver.read_block(1);
     while (true) {
         // Loop forever
     }
