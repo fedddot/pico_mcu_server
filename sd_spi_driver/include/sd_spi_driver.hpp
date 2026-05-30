@@ -47,15 +47,7 @@ namespace sd_spi_driver {
         ~SdSpiDriver() noexcept = default;
         
         std::array<std::uint8_t, BLOCK_SIZE> read_block(const std::uint32_t block_address) const {
-            auto address = std::uint32_t(0);
-            switch (m_address_mode) {
-            case AddressMode::BYTE_ADDRESSING:
-                address = block_address * BLOCK_SIZE;
-                break;
-            case AddressMode::BLOCK_ADDRESSING:
-                address = block_address;
-                break;
-            }
+            const auto address = calculate_address(block_address, m_address_mode);
             const auto cmd17_response = send_command<1>(SdCommand::CMD17, address, RESPONSE_MAX_ATTEMPTS);
             if (cmd17_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card block: CMD17 did not return expected response");
@@ -84,6 +76,10 @@ namespace sd_spi_driver {
         }
         void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const {
 
+        }
+
+        std::uint64_t total_blocks() const {
+            return m_total_blocks;
         }
     private:
         enum class SdType: int {
@@ -118,6 +114,17 @@ namespace sd_spi_driver {
         SdType m_sd_type;
         AddressMode m_address_mode;
         std::uint64_t m_total_blocks;
+
+        static std::uint32_t calculate_address(const std::uint32_t block_address, const AddressMode address_mode) {
+            switch (address_mode) {
+            case AddressMode::BYTE_ADDRESSING:
+                return block_address * BLOCK_SIZE;
+            case AddressMode::BLOCK_ADDRESSING:
+                return block_address;
+            default:
+                throw std::invalid_argument("invalid AddressMode provided to calculate_address");
+            }
+        }
 
         static std::uint8_t calculate_crc(const SdCommand cmd, std::uint32_t arg) {
             (void)arg;
