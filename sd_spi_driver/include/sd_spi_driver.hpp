@@ -98,7 +98,7 @@ namespace sd_spi_driver {
                 }
                 --cycles_remaining;
             }
-            if (status != 0) {
+            if (status == 0) {
                 throw std::runtime_error("The SD card did not accept the data during " + std::to_string(DATA_PROCESSED_CYCLES) + " cycles after the block data was sent");
             }
         }
