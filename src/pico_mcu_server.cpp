@@ -1,3 +1,4 @@
+#include <array>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -24,8 +25,14 @@ int main(void) {
         sd_delay,
         sd_chip_selector
     );
-    const auto block_data0 = sd_driver.read_block(0);
-    const auto block_data1 = sd_driver.read_block(1);
+    auto block_read_data = sd_driver.read_block(0);
+
+    const auto last_block = sd_driver.total_blocks() - 1;
+    auto block_write_data = std::array<std::uint8_t, SdSpiDriver::BLOCK_SIZE>();
+    std::memset(block_write_data.data(), 0x5A, block_write_data.size());
+    sd_driver.write_block(last_block, block_write_data);
+    block_read_data = sd_driver.read_block(last_block);
+    
     while (true) {
         // Loop forever
     }
