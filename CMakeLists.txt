@@ -42,6 +42,9 @@ target_link_libraries(
     pico_stdlib
     ff
     sd_spi_driver
+    hardware_spi
+    hardware_gpio
+    pico_time
 )
 
 target_compile_definitions(

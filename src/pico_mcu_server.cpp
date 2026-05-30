@@ -1,8 +1,9 @@
-#include <array>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <stdexcept>
 
+#include "ff.h"
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
 #include "pico/time.h"
@@ -17,21 +18,21 @@ static std::uint8_t sd_trancieve_byte(const std::uint8_t byte);
 static void sd_delay(const std::size_t ms);
 static void sd_chip_selector(const SdSpiDriver::ChipSelectState state);
 
+std::optional<SdSpiDriver> g_sd_driver;
+
 int main(void) {
-    SdSpiDriver sd_driver(
+    g_sd_driver = std::make_optional<SdSpiDriver>(
         sd_spi_init,
         sd_set_spi_speed,
         sd_trancieve_byte,
         sd_delay,
         sd_chip_selector
     );
-    auto block_read_data = sd_driver.read_block(0);
 
-    const auto last_block = sd_driver.total_blocks() - 1;
-    auto block_write_data = std::array<std::uint8_t, SdSpiDriver::BLOCK_SIZE>();
-    std::memset(block_write_data.data(), 0x5A, block_write_data.size());
-    sd_driver.write_block(last_block, block_write_data);
-    block_read_data = sd_driver.read_block(last_block);
+    FATFS fs;
+    if (FRESULT::FR_OK != f_mount(&fs, "0:", 1)) {
+        throw std::runtime_error("failed to mount filesystem");
+    }
     
     while (true) {
         // Loop forever
