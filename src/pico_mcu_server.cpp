@@ -43,10 +43,13 @@ int main(void) {
         throw std::runtime_error("failed to open file for reading");
     }
 
-    std::array<std::uint8_t, 2048UL> read_buffer;
+    std::array<std::uint8_t, 2048> read_buffer;
     std::size_t bytes_read;
     if (FRESULT::FR_OK != f_read(&file, read_buffer.data(), read_buffer.size(), (UINT *)(&bytes_read))) {
         throw std::runtime_error("failed to read from file");
+    }
+    if (FRESULT::FR_OK != f_close(&file)) {
+        throw std::runtime_error("failed to close file after reading");
     }
 
     const auto wo_status = f_open(&file, "0:TEST1", FA_WRITE | FA_CREATE_ALWAYS);
@@ -58,7 +61,9 @@ int main(void) {
     if (FRESULT::FR_OK != f_write(&file, write_file_test.data(), write_file_test.size(), (UINT *)(&bytes_written))) {
         throw std::runtime_error("failed to write to file");
     }
-
+    if (FRESULT::FR_OK != f_close(&file)) {
+        throw std::runtime_error("failed to close file after writing");
+    }
     
     while (true) {
         // Loop forever

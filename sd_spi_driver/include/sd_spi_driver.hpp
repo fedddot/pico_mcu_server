@@ -47,13 +47,14 @@ namespace sd_spi_driver {
         ~SdSpiDriver() noexcept = default;
         
         std::array<std::uint8_t, BLOCK_SIZE> read_block(const std::uint32_t block_address) const {
+            release_card(500000UL);
             const auto address = calculate_address(block_address, m_address_mode);
             const auto cmd17_response = send_command<1>(SdCommand::CMD17, address, RESPONSE_MAX_ATTEMPTS);
             if (cmd17_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card block: CMD17 did not return expected response");
             }
-            enum: std::size_t { DATA_TOKEN_MAX_ATTEMPTS = 10000UL };
-            auto attempts_remaining = std::size_t(DATA_TOKEN_MAX_ATTEMPTS);
+            enum: std::uint64_t { DATA_TOKEN_MAX_ATTEMPTS = 500000UL };
+            auto attempts_remaining = std::uint64_t(DATA_TOKEN_MAX_ATTEMPTS);
             auto data_token = std::uint8_t(0xFF);
             while (attempts_remaining) {
                 data_token = m_trancieve_byte(0xFF);
@@ -72,9 +73,11 @@ namespace sd_spi_driver {
             // Discard CRC
             m_trancieve_byte(0xFF);
             m_trancieve_byte(0xFF);
+
             return block_data;
         }
         void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const {
+            release_card(500000UL);
             const auto address = calculate_address(block_address, m_address_mode);
             const auto cmd24_response = send_command<1>(SdCommand::CMD24, address, RESPONSE_MAX_ATTEMPTS);
             if (cmd24_response[0] != 0x00) {
@@ -88,8 +91,8 @@ namespace sd_spi_driver {
             m_trancieve_byte(0xFF);
             m_trancieve_byte(0xFF);
             
-            enum: std::size_t { DATA_PROCESSED_CYCLES = 10000UL };
-            auto cycles_remaining = std::size_t(DATA_PROCESSED_CYCLES);
+            enum: std::uint64_t { DATA_PROCESSED_CYCLES = 500000UL };
+            auto cycles_remaining = std::uint64_t(DATA_PROCESSED_CYCLES);
             auto status = std::uint8_t(0xFF);
             while (cycles_remaining) {
                 status = m_trancieve_byte(0xFF);
@@ -294,6 +297,21 @@ namespace sd_spi_driver {
             device_size |= static_cast<std::uint64_t>(csd[10]) & std::uint64_t(0xFF);
             device_size = (device_size + 1) * 512 * 1024;
             m_total_blocks = device_size / BLOCK_SIZE;
+        }
+
+        void release_card(const std::uint32_t attempts) const {
+            auto cycles_remaining = attempts;
+            std::uint8_t byte = 0xFF;
+            while (cycles_remaining) {
+                byte = m_trancieve_byte(0xFF);
+                if (0xFF == byte) {
+                    break;
+                }
+                --cycles_remaining;
+            }
+            if (byte != 0xFF) {
+                throw std::runtime_error("Failed to release SD card: did not receive expected byte after " + std::to_string(attempts) + " attempts");
+            }
         }
     };
 }
