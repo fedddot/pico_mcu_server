@@ -80,7 +80,7 @@ namespace sd_spi_driver {
         ChipSelector m_chip_selector;
         SdType m_sd_type;
         AddressMode m_address_mode;
-        std::size_t m_total_blocks;
+        std::uint64_t m_total_blocks;
 
         static std::uint8_t calculate_crc(const SdCommand cmd, std::uint32_t arg) {
             (void)arg;
@@ -214,12 +214,12 @@ namespace sd_spi_driver {
                 throw std::runtime_error("Bad CSD data");
             }
             const auto *csd = cmd9_response.data() + csd_start_index;
-            std::size_t device_size;
-            device_size = static_cast<std::size_t>(csd[8]) & std::size_t(0x3F);
+            std::uint64_t device_size;
+            device_size = static_cast<std::uint64_t>(csd[8]) & std::uint64_t(0x3F);
             device_size <<= 8;
-            device_size |= static_cast<std::size_t>(csd[9]) & std::size_t(0xFF);
+            device_size |= static_cast<std::uint64_t>(csd[9]) & std::uint64_t(0xFF);
             device_size <<= 8;
-            device_size |= static_cast<std::size_t>(csd[10]) & std::size_t(0xFF);
+            device_size |= static_cast<std::uint64_t>(csd[10]) & std::uint64_t(0xFF);
             device_size = (device_size + 1) * 512 * 1024;
             m_total_blocks = device_size / BLOCK_SIZE;
         }
