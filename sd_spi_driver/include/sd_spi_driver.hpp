@@ -191,10 +191,10 @@ namespace sd_spi_driver {
             if (cmd16_response[0] != 0x00) {
                 throw std::runtime_error("Failed to initialize SD card: CMD16 did not return expected response");
             }
-            read_csd();
+            read_csd_sdhc_sdxc();
         }
 
-        void read_csd() {
+        void read_csd_sdhc_sdxc() {
             // The response length: R1 (R1_RESPONSE_LENGTH) + Some data tokens (DATA_TOKEN_MAX_LENGTH) which will be discarded + R2 (CSD_LENGTH)
             enum: std::size_t {
                 R1_RESPONSE_LENGTH = 1,
