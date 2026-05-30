@@ -177,6 +177,9 @@ namespace sd_spi_driver {
                 }
                 continue;
             }
+            if (acmd41_response[0] != 0x00) {
+                throw std::runtime_error("Failed to initialize SD card: ACMD41 did not return expected response");
+            }
             const auto cmd58_response = send_command<5>(SdCommand::CMD58, 0, RESPONSE_MAX_ATTEMPTS);
             if (cmd58_response[0] != 0x00) {
                 throw std::runtime_error("Failed to initialize SD card: CMD58 did not return expected response");
