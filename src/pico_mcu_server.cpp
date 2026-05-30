@@ -1,7 +1,10 @@
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <optional>
 #include <stdexcept>
+#include <string>
 
 #include "ff.h"
 #include "hardware/gpio.h"
@@ -33,6 +36,29 @@ int main(void) {
     if (FRESULT::FR_OK != f_mount(&fs, "0:", 1)) {
         throw std::runtime_error("failed to mount filesystem");
     }
+
+    FIL file;
+    const auto ro_status = f_open(&file, "0:TEST", FA_READ);
+    if (FRESULT::FR_OK != ro_status) {
+        throw std::runtime_error("failed to open file for reading");
+    }
+
+    std::array<std::uint8_t, 2048UL> read_buffer;
+    std::size_t bytes_read;
+    if (FRESULT::FR_OK != f_read(&file, read_buffer.data(), read_buffer.size(), (UINT *)(&bytes_read))) {
+        throw std::runtime_error("failed to read from file");
+    }
+
+    const auto wo_status = f_open(&file, "0:TEST1", FA_WRITE | FA_CREATE_ALWAYS);
+    if (FRESULT::FR_OK != wo_status) {
+        throw std::runtime_error("failed to open file for writing");
+    }
+    std::string write_file_test = "alala";
+    std::size_t bytes_written;
+    if (FRESULT::FR_OK != f_write(&file, write_file_test.data(), write_file_test.size(), (UINT *)(&bytes_written))) {
+        throw std::runtime_error("failed to write to file");
+    }
+
     
     while (true) {
         // Loop forever
