@@ -125,8 +125,8 @@ namespace sd_spi_driver {
             }
         }
 
-        template <std::size_t ResponseLength>
-        std::array<std::uint8_t, ResponseLength> send_command(const SdCommand cmd, std::uint32_t arg, const std::size_t read_attempts) const {
+        template <std::size_t Nresp>
+        std::array<std::uint8_t, Nresp> send_command(const SdCommand cmd, std::uint32_t arg, const std::size_t read_attempts) const {
             m_chip_selector(ChipSelectState::UNSELECTED);
             m_trancieve_byte(0xFF);
             m_chip_selector(ChipSelectState::SELECTED);
@@ -139,8 +139,8 @@ namespace sd_spi_driver {
             m_trancieve_byte((std::uint8_t)(arg >> 0 ));
             m_trancieve_byte(calculate_crc(cmd, arg));
 
-            std::array<std::uint8_t, ResponseLength> response;
-            if (ResponseLength == 0) {
+            std::array<std::uint8_t, Nresp> response;
+            if (Nresp == 0) {
                 return response;
             }
             for (std::size_t attempt = 0; attempt < read_attempts; ++attempt) {
@@ -150,7 +150,7 @@ namespace sd_spi_driver {
                     break;
                 }
             }
-            for (std::size_t n = 1; n < ResponseLength; n++) {
+            for (std::size_t n = 1; n < Nresp; n++) {
                 response[n] = m_trancieve_byte(0xFF);
             }
             return response;
