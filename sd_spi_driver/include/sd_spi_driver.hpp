@@ -45,7 +45,7 @@ namespace sd_spi_driver {
         }
         SdSpiDriver(const SdSpiDriver&) = default;
         SdSpiDriver& operator=(const SdSpiDriver&) = default;
-        ~SdSpiDriver() noexcept;
+        ~SdSpiDriver() noexcept = default;
         
         std::array<std::uint8_t, BLOCK_SIZE> read_block(const std::uint32_t block_address) const {
             // The response length: R1 (R1_RESPONSE_LENGTH) + Some 0xFF data tokens (DATA_TOKEN_MAX_LENGTH) + 0xFE token (CMD17_SINGLE_BLOCK_READ_TOKEN) + block data (BLOCK_SIZE) + CRC (2 bytes)
