@@ -75,7 +75,32 @@ namespace sd_spi_driver {
             return block_data;
         }
         void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const {
-
+            const auto address = calculate_address(block_address, m_address_mode);
+            const auto cmd24_response = send_command<1>(SdCommand::CMD24, address, RESPONSE_MAX_ATTEMPTS);
+            if (cmd24_response[0] != 0x00) {
+                throw std::runtime_error("Failed to write SD card block: CMD24 did not return expected response");
+            }
+            m_trancieve_byte(0xFE); // Data token for single block write
+            for (std::size_t i = 0; i < BLOCK_SIZE; ++i) {
+                m_trancieve_byte(data[i]);
+            }
+            // Fake CRC
+            m_trancieve_byte(0xFF);
+            m_trancieve_byte(0xFF);
+            
+            enum: std::size_t { DATA_PROCESSED_CYCLES = 10000UL };
+            auto cycles_remaining = std::size_t(DATA_PROCESSED_CYCLES);
+            auto status = std::uint8_t(0xFF);
+            while (cycles_remaining) {
+                status = m_trancieve_byte(0xFF);
+                if (status != 0) {
+                    break;
+                }
+                --cycles_remaining;
+            }
+            if (status != 0) {
+                throw std::runtime_error("The SD card did not accept the data during " + std::to_string(DATA_PROCESSED_CYCLES) + " cycles after the block data was sent");
+            }
         }
 
         std::uint64_t total_blocks() const {
