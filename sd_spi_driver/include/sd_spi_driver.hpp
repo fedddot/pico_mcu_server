@@ -1,7 +1,6 @@
 #ifndef	SD_SPI_DRIVER_HPP
 #define	SD_SPI_DRIVER_HPP
 
-#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -40,39 +39,38 @@ namespace sd_spi_driver {
                 throw std::invalid_argument("invalid argument(s) provided to SdSpiDriver constructor");
             }
             m_spi_init();
-
             init_card();
+            m_set_spi_speed(SpiSpeed::HIGH_SPEED);
         }
         SdSpiDriver(const SdSpiDriver&) = default;
         SdSpiDriver& operator=(const SdSpiDriver&) = default;
         ~SdSpiDriver() noexcept = default;
         
         std::array<std::uint8_t, BLOCK_SIZE> read_block(const std::uint32_t block_address) const {
-            // The response length: R1 (R1_RESPONSE_LENGTH) + Some 0xFF data tokens (DATA_TOKEN_MAX_LENGTH) + 0xFE token (CMD17_SINGLE_BLOCK_READ_TOKEN) + block data (BLOCK_SIZE) + CRC (2 bytes)
-            enum: std::size_t {
-                R1_RESPONSE_LENGTH = 1,
-                DATA_TOKEN_MAX_LENGTH = 5,
-                CMD17_SINGLE_BLOCK_READ_TOKEN = 1,
-                CRC_SIZE = 2,
-                RESPONSE_LENGTH = R1_RESPONSE_LENGTH + DATA_TOKEN_MAX_LENGTH + CMD17_SINGLE_BLOCK_READ_TOKEN + BLOCK_SIZE + CRC_SIZE,
-            };
-            const auto cmd17_response = send_command<RESPONSE_LENGTH>(SdCommand::CMD17, block_address, RESPONSE_MAX_ATTEMPTS);
+            const auto cmd17_response = send_command<1>(SdCommand::CMD17, block_address, RESPONSE_MAX_ATTEMPTS);
             if (cmd17_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card block: CMD17 did not return expected response");
             }
-            auto data_token_index = std::size_t(1);
-            while (cmd17_response[data_token_index] == 0xFF && data_token_index < RESPONSE_LENGTH) {
-                ++data_token_index;
+            enum: std::size_t { DATA_TOKEN_MAX_ATTEMPTS = 10000UL };
+            auto attempts_remaining = std::size_t(DATA_TOKEN_MAX_ATTEMPTS);
+            auto data_token = std::uint8_t(0xFF);
+            while (attempts_remaining) {
+                data_token = m_trancieve_byte(0xFF);
+                if (data_token == 0xFE) {
+                    break;
+                }
+                --attempts_remaining;
             }
-            if (cmd17_response[data_token_index] != 0xFE) {
-                throw std::runtime_error("Wrong data token received when reading SD card block");
-            }
-            ++data_token_index;
-            if (data_token_index + BLOCK_SIZE + CRC_SIZE > RESPONSE_LENGTH) {
-                throw std::runtime_error("Not enough data received when reading SD card block");
+            if (data_token != 0xFE) {
+                throw std::runtime_error("Failed to read SD card block: did not receive expected data token");
             }
             std::array<std::uint8_t, BLOCK_SIZE> block_data;
-            std::copy(cmd17_response.begin() + data_token_index, cmd17_response.begin() + data_token_index + BLOCK_SIZE, block_data.begin());
+            for (std::size_t i = 0; i < BLOCK_SIZE; ++i) {
+                block_data[i] = m_trancieve_byte(0xFF);
+            }
+            // Discard CRC
+            m_trancieve_byte(0xFF);
+            m_trancieve_byte(0xFF);
             return block_data;
         }
         void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const;
@@ -193,7 +191,7 @@ namespace sd_spi_driver {
         void init_sd_v2() {
             m_sd_type = SdType::SD2;
             std::array<std::uint8_t, 1> acmd41_response;
-            std::size_t attempt = 1000UL;
+            std::size_t attempt = 10000UL;
             while (attempt--) {
                 const auto cmd55_response = send_command<1>(SdCommand::CMD55, 0, RESPONSE_MAX_ATTEMPTS);
                 if (cmd55_response[0] > 1) {
