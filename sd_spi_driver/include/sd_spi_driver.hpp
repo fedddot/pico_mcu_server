@@ -195,16 +195,31 @@ namespace sd_spi_driver {
         }
 
         void read_csd() {
-            const auto cmd9_response = send_command<17>(SdCommand::CMD9, 0, RESPONSE_MAX_ATTEMPTS);
+            // The response length: R1 (R1_RESPONSE_LENGTH) + Some data tokens (DATA_TOKEN_MAX_LENGTH) which will be discarded + R2 (CSD_LENGTH)
+            enum: std::size_t {
+                R1_RESPONSE_LENGTH = 1,
+                DATA_TOKEN_MAX_LENGTH = 5,
+                CSD_LENGTH = 16,
+                RESPONSE_LENGTH = R1_RESPONSE_LENGTH + DATA_TOKEN_MAX_LENGTH + CSD_LENGTH,
+            };
+            const auto cmd9_response = send_command<RESPONSE_LENGTH>(SdCommand::CMD9, 0, RESPONSE_MAX_ATTEMPTS);
             if (cmd9_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card CSD register: CMD9 did not return expected response");
             }
+            auto csd_start_index = std::size_t(1);
+            while (cmd9_response[csd_start_index] == 0xFF && csd_start_index < RESPONSE_LENGTH) {
+                ++csd_start_index;
+            }
+            if (csd_start_index >= RESPONSE_LENGTH - CSD_LENGTH) {
+                throw std::runtime_error("Bad CSD data");
+            }
+            const auto *csd = cmd9_response.data() + csd_start_index;
             std::size_t device_size;
-            device_size = static_cast<std::size_t>(cmd9_response[7]) & std::size_t(0xFF);
+            device_size = static_cast<std::size_t>(csd[7]) & std::size_t(0xFF);
             device_size <<= 22-6-8-8;
-            device_size |= static_cast<std::size_t>(cmd9_response[8]) & std::size_t(0xFF);
+            device_size |= static_cast<std::size_t>(csd[8]) & std::size_t(0xFF);
             device_size <<= 22-6-8;
-            device_size |= static_cast<std::size_t>(cmd9_response[9]) & std::size_t(0x3F);
+            device_size |= static_cast<std::size_t>(csd[9]) & std::size_t(0x3F);
             device_size <<= 22-6;
             m_total_blocks = (device_size + 1) * 1024;
         }
