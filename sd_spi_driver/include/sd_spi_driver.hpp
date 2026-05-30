@@ -47,7 +47,16 @@ namespace sd_spi_driver {
         ~SdSpiDriver() noexcept = default;
         
         std::array<std::uint8_t, BLOCK_SIZE> read_block(const std::uint32_t block_address) const {
-            const auto cmd17_response = send_command<1>(SdCommand::CMD17, block_address, RESPONSE_MAX_ATTEMPTS);
+            auto address = std::uint32_t(0);
+            switch (m_address_mode) {
+            case AddressMode::BYTE_ADDRESSING:
+                address = block_address * BLOCK_SIZE;
+                break;
+            case AddressMode::BLOCK_ADDRESSING:
+                address = block_address;
+                break;
+            }
+            const auto cmd17_response = send_command<1>(SdCommand::CMD17, address, RESPONSE_MAX_ATTEMPTS);
             if (cmd17_response[0] != 0x00) {
                 throw std::runtime_error("Failed to read SD card block: CMD17 did not return expected response");
             }
@@ -73,7 +82,9 @@ namespace sd_spi_driver {
             m_trancieve_byte(0xFF);
             return block_data;
         }
-        void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const;
+        void write_block(const std::uint32_t block_address, const std::array<std::uint8_t, BLOCK_SIZE>& data) const {
+
+        }
     private:
         enum class SdType: int {
             SD1,
