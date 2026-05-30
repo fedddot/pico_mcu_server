@@ -1,21 +1,26 @@
+#include <cstdint>
+#include <optional>
+
 #include "ff.h"
 #include "diskio.h"
 
-#include "sd_utils.hpp"
+#include "sd_spi_driver.hpp"
+
+using namespace sd_spi_driver;
+
+extern std::optional<SdSpiDriver> g_sd_driver;
 
 DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
     switch (cmd) {
     case GET_BLOCK_SIZE:
-        *(DWORD *)buff = (DWORD)sd_utils::get_block_size();
+        *(DWORD *)buff = (DWORD)SdSpiDriver::BLOCK_SIZE;
         return DRESULT::RES_OK;
     case GET_SECTOR_COUNT:
-        try {
-            const auto sector_count = sd_utils::get_sector_count();
-            *(LBA_t *)buff = (LBA_t)sector_count;
-            return DRESULT::RES_OK;
-        } catch (...) {
+        if (!g_sd_driver.has_value()) {
             return DRESULT::RES_ERROR;
         }
+        *(LBA_t *)buff = (LBA_t)g_sd_driver->total_blocks();
+        return DRESULT::RES_OK;
     case CTRL_SYNC:
         return DRESULT::RES_OK;
     default:
@@ -24,27 +29,26 @@ DRESULT disk_ioctl(BYTE pdrv, BYTE cmd, void* buff) {
 }
 
 DSTATUS disk_initialize(BYTE pdrv) {
-    (void)pdrv;
-    try {
-        sd_utils::disk_initialize();
-        return 0;
-    } catch (...) {
-        return -1;
-    }
+    return disk_status(pdrv);
 }
 
 DSTATUS disk_status(BYTE pdrv) {
     (void)pdrv;
-    if (sd_utils::DiskStatus::READY == sd_utils::disk_status()) {
-        return 0;
+    if (!g_sd_driver.has_value()) {
+        return -1;
     }
-    return -1;
+    return 0;
 }
 
 DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
-    (void)pdrv;
     try {
-        sd_utils::disk_read(buff, sector, count);
+        if (disk_status(pdrv) != 0) {
+            return DRESULT::RES_ERROR;
+        }
+        for (std::uint32_t i = 0; i < count; ++i) {
+            const auto block_data = g_sd_driver->read_block(sector + i);
+            std::copy(block_data.begin(), block_data.end(), buff + i * SdSpiDriver::BLOCK_SIZE);
+        }
         return DRESULT::RES_OK;
     } catch (...) {
         return DRESULT::RES_ERROR;
@@ -52,9 +56,15 @@ DRESULT disk_read(BYTE pdrv, BYTE* buff, LBA_t sector, UINT count) {
 }
 
 DRESULT disk_write(BYTE pdrv, const BYTE* buff, LBA_t sector, UINT count) {
-    (void)pdrv;
     try {
-        sd_utils::disk_write(buff, sector, count);
+        if (disk_status(pdrv) != 0) {
+            return DRESULT::RES_ERROR;
+        }
+        for (std::uint32_t i = 0; i < count; ++i) {
+            std::array<std::uint8_t, SdSpiDriver::BLOCK_SIZE> block_data;
+            std::copy(buff + i * SdSpiDriver::BLOCK_SIZE, buff + i * SdSpiDriver::BLOCK_SIZE + SdSpiDriver::BLOCK_SIZE, block_data.begin());
+            g_sd_driver->write_block(sector + i, block_data);
+        }
         return DRESULT::RES_OK;
     } catch (...) {
         return DRESULT::RES_ERROR;
