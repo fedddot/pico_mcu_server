@@ -2,33 +2,27 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <optional>
 #include <stdexcept>
 #include <string>
 
 #include "ff.h"
 #include "hardware/gpio.h"
 #include "hardware/spi.h"
-#include "pico/time.h"
 
-#include "sd_spi_driver.hpp"
+#include "fatfs_callbacks.hpp"
 
-using namespace sd_spi_driver;
+using namespace fatfs;
 
 static void sd_spi_init(void);
-static void sd_set_spi_speed(const SdSpiDriver::SpiSpeed speed);
+static void sd_set_spi_speed(const std::uint32_t speed_hz);
 static std::uint8_t sd_trancieve_byte(const std::uint8_t byte);
-static void sd_delay(const std::size_t ms);
-static void sd_chip_selector(const SdSpiDriver::ChipSelectState state);
-
-std::optional<SdSpiDriver> g_sd_driver;
+static void sd_chip_selector(const ChipSelectState state);
 
 int main(void) {
-    g_sd_driver = std::make_optional<SdSpiDriver>(
+    init_fatfs_callbacks(
         sd_spi_init,
         sd_set_spi_speed,
         sd_trancieve_byte,
-        sd_delay,
         sd_chip_selector
     );
 
@@ -80,7 +74,7 @@ int main(void) {
 void sd_spi_init(void) {
     volatile const int actual_baud = spi_init(
         SD_SPI_INST,
-        static_cast<uint>(SdSpiDriver::SpiSpeed::LOW_SPEED)
+        400000UL
     );
     spi_set_format(SD_SPI_INST, 8, spi_cpol_t::SPI_CPOL_0, spi_cpha_t::SPI_CPHA_0, spi_order_t::SPI_MSB_FIRST);
     spi_set_slave(SD_SPI_INST, false);
@@ -94,8 +88,8 @@ void sd_spi_init(void) {
     gpio_put(SD_PIN_CS, 1);
 }
 
-void sd_set_spi_speed(const SdSpiDriver::SpiSpeed speed) {
-    spi_set_baudrate(SD_SPI_INST, static_cast<uint>(speed));
+void sd_set_spi_speed(const std::uint32_t speed_hz) {
+    spi_set_baudrate(SD_SPI_INST, static_cast<uint>(speed_hz));
 }
 
 std::uint8_t sd_trancieve_byte(const std::uint8_t byte) {
@@ -104,16 +98,12 @@ std::uint8_t sd_trancieve_byte(const std::uint8_t byte) {
     return rx;
 }
 
-void sd_delay(const std::size_t ms) {
-    sleep_ms(ms);
-}
-
-void sd_chip_selector(const SdSpiDriver::ChipSelectState state) {
+void sd_chip_selector(const ChipSelectState state) {
     switch (state) {
-    case SdSpiDriver::ChipSelectState::SELECTED:
+    case ChipSelectState::SELECTED:
         gpio_put(SD_PIN_CS, 0);
         break;
-    case SdSpiDriver::ChipSelectState::UNSELECTED:
+    case ChipSelectState::UNSELECTED:
         gpio_put(SD_PIN_CS, 1);
         break;
     default:

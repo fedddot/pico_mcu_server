@@ -40,6 +40,7 @@ target_link_libraries(
     PRIVATE
     pico_stdlib
     ff
+    fatfs_callbacks
     hardware_spi
     hardware_gpio
     pico_time
