@@ -10,7 +10,7 @@
 using namespace sdspidriver;
 using namespace fatfs;
 
-extern std::optional<SdSpiDriver> s_sd_driver;
+std::optional<SdSpiDriver> s_sd_driver;
 
 void fatfs::init_fatfs_callbacks(const SpiInit& spi_init, const SetSpiSpeed& set_spi_speed, const TrancieveByte& trancieve_byte, const ChipSelector& chip_selector) {
     s_sd_driver.emplace(spi_init, set_spi_speed, trancieve_byte, chip_selector);
