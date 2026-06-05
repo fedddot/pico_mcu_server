@@ -14,7 +14,7 @@ FetchContent_MakeAvailable(sdspidriver)
 
 add_library(fatfs_callbacks INTERFACE)
 target_sources(fatfs_callbacks INTERFACE ${CMAKE_CURRENT_LIST_DIR}/src/fatfs_callbacks.cpp)
-target_include_directories(fatfs_callbacks INTERFACE ${fatfs_SOURCE_DIR}/source)
+target_include_directories(fatfs_callbacks INTERFACE ${fatfs_SOURCE_DIR}/source ${CMAKE_CURRENT_LIST_DIR}/include)
 target_link_libraries(fatfs_callbacks INTERFACE sdspidriver)
 
 add_library(ff INTERFACE)
