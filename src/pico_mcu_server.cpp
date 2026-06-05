@@ -1,33 +1,112 @@
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
 #include <stdexcept>
+#include <string>
 
 #include "ff.h"
+#include "hardware/gpio.h"
+#include "hardware/spi.h"
 
-int main(void) {    
+#include "fatfs_callbacks.hpp"
+
+using namespace fatfs;
+
+static void sd_spi_init(void);
+static void sd_set_spi_speed(const std::uint32_t speed_hz);
+static std::uint8_t sd_trancieve_byte(const std::uint8_t byte);
+static void sd_chip_selector(const ChipSelectState state);
+
+int main(void) {
+    init_fatfs_callbacks(
+        sd_spi_init,
+        sd_set_spi_speed,
+        sd_trancieve_byte,
+        sd_chip_selector
+    );
+
     FATFS fs;
-    std::memset(&fs, 0, sizeof(fs));
     if (FRESULT::FR_OK != f_mount(&fs, "0:", 1)) {
-        throw std::runtime_error("Failed to mount SD card");
+        throw std::runtime_error("failed to mount filesystem");
     }
 
     FIL file;
-    if (FRESULT::FR_OK != f_open(&file, "0:TEST.MD", FA_CREATE_ALWAYS | FA_WRITE)) {
-        throw std::runtime_error("Failed to open file on SD card");
-    }
-    char data[] = "onetwothree";
-    UINT bytes_write(0);
-    if (FRESULT::FR_OK != f_write(&file, data, sizeof(data), &bytes_write)) {
-        throw std::runtime_error("Failed to read from file on SD card");
-    }
-    if (FRESULT::FR_OK != f_close(&file)) {
-        throw std::runtime_error("Failed to close file on SD card");
-    }
-    if (FRESULT::FR_OK != f_unmount("0:")) {
-        throw std::runtime_error("Failed to unmount SD card");
+    const auto ro_status = f_open(&file, "0:TEST", FA_READ);
+    if (FRESULT::FR_OK != ro_status) {
+        throw std::runtime_error("failed to open file for reading");
     }
 
+    std::array<std::uint8_t, 2048> read_buffer;
+    std::size_t bytes_read;
+    if (FRESULT::FR_OK != f_read(&file, read_buffer.data(), read_buffer.size(), (UINT *)(&bytes_read))) {
+        throw std::runtime_error("failed to read from file");
+    }
+    if (FRESULT::FR_OK != f_close(&file)) {
+        throw std::runtime_error("failed to close file after reading");
+    }
+
+    const auto wo_status = f_open(&file, "0:TEST1", FA_WRITE | FA_CREATE_ALWAYS);
+    if (FRESULT::FR_OK != wo_status) {
+        throw std::runtime_error("failed to open file for writing");
+    }
+    std::string write_file_test = "alala";
+    std::size_t bytes_written;
+    if (FRESULT::FR_OK != f_write(&file, write_file_test.data(), write_file_test.size(), (UINT *)(&bytes_written))) {
+        throw std::runtime_error("failed to write to file");
+    }
+    if (FRESULT::FR_OK != f_close(&file)) {
+        throw std::runtime_error("failed to close file after writing");
+    }
+    
     while (true) {
         // Loop forever
     }
     return 0;
+}
+
+#define SD_SPI_INST     spi1
+#define SD_PIN_SCK      10u
+#define SD_PIN_MOSI     11u
+#define SD_PIN_MISO     12u
+#define SD_PIN_CS       13u
+
+void sd_spi_init(void) {
+    volatile const int actual_baud = spi_init(
+        SD_SPI_INST,
+        400000UL
+    );
+    spi_set_format(SD_SPI_INST, 8, spi_cpol_t::SPI_CPOL_0, spi_cpha_t::SPI_CPHA_0, spi_order_t::SPI_MSB_FIRST);
+    spi_set_slave(SD_SPI_INST, false);
+
+    gpio_set_function(SD_PIN_SCK,  GPIO_FUNC_SPI);
+    gpio_set_function(SD_PIN_MOSI, GPIO_FUNC_SPI);
+    gpio_set_function(SD_PIN_MISO, GPIO_FUNC_SPI);
+
+    gpio_init(SD_PIN_CS);
+    gpio_set_dir(SD_PIN_CS, GPIO_OUT);
+    gpio_put(SD_PIN_CS, 1);
+}
+
+void sd_set_spi_speed(const std::uint32_t speed_hz) {
+    spi_set_baudrate(SD_SPI_INST, static_cast<uint>(speed_hz));
+}
+
+std::uint8_t sd_trancieve_byte(const std::uint8_t byte) {
+    std::uint8_t rx;
+    volatile const int bytes_wr = spi_write_read_blocking(SD_SPI_INST, &byte, &rx, 1);
+    return rx;
+}
+
+void sd_chip_selector(const ChipSelectState state) {
+    switch (state) {
+    case ChipSelectState::SELECTED:
+        gpio_put(SD_PIN_CS, 0);
+        break;
+    case ChipSelectState::UNSELECTED:
+        gpio_put(SD_PIN_CS, 1);
+        break;
+    default:
+        throw std::invalid_argument("invalid ChipSelectState provided to sd_chip_selector");
+    }
 }

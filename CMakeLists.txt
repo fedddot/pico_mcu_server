@@ -40,6 +40,10 @@ target_link_libraries(
     PRIVATE
     pico_stdlib
     ff
+    fatfs_callbacks
+    hardware_spi
+    hardware_gpio
+    pico_time
 )
 
 target_compile_definitions(
@@ -48,3 +52,5 @@ target_compile_definitions(
     -DBUFF_SIZE=512UL
     -DPICO_IPC_BAUD=9600UL
 )
+
+target_compile_options(pico_mcu_server PRIVATE -O0)
